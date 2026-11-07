@@ -184,9 +184,11 @@ export function InterviewRoom({
   const answered = state.turnsCompleted;
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-3">
+    <div
+      className="dark -mx-4 -my-6 flex min-h-[calc(100vh-4rem)] flex-col gap-3 bg-[hsl(264_32%_6%)] px-4 py-5 text-foreground sm:-mx-6 sm:px-6 lg:-mx-10 lg:-my-10 lg:px-8 lg:py-6"
+    >
       {/* Top bar */}
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border bg-card px-4 py-2.5">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 backdrop-blur">
         <div className="flex items-center gap-2.5">
           <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide">
             <span
@@ -239,11 +241,15 @@ export function InterviewRoom({
           */}
           <span
             className={cn(
-              "flex items-center gap-1.5 font-medium",
-              presence.tone === "speaking" && "text-info",
-              presence.tone === "listening" && "text-success",
-              presence.tone === "thinking" && "text-warning",
-              presence.tone === "problem" && "text-destructive",
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+              presence.tone === "speaking" && "border-info/30 bg-info/15 text-info",
+              presence.tone === "listening" &&
+                "border-success/30 bg-success/15 text-success",
+              presence.tone === "thinking" &&
+                "border-warning/30 bg-warning/15 text-warning",
+              presence.tone === "problem" &&
+                "border-destructive/30 bg-destructive/15 text-destructive",
+              presence.tone === "idle" && "border-white/15 bg-white/10 text-white/70",
             )}
             aria-live="polite"
           >
@@ -329,7 +335,9 @@ export function InterviewRoom({
       {/* Stage: two people, and nothing competing with them. */}
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="grid gap-3 md:grid-cols-2">
+          {/* Two tiles, equal and dominant. `flex-1` lets them take the
+              height the stage has rather than a fixed 260px. */}
+          <div className="grid flex-1 gap-3 md:grid-cols-2">
             <InterviewerPresence
               phase={state.phase}
               interviewerName={interviewerName}
@@ -339,7 +347,7 @@ export function InterviewRoom({
             />
 
             {/* Candidate */}
-            <div className="relative min-h-[260px] overflow-hidden rounded-xl border bg-muted/30">
+            <div className="relative min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-black/40">
               <video
                 ref={videoRef}
                 playsInline
@@ -410,10 +418,17 @@ export function InterviewRoom({
       </div>
 
       {/* Controls */}
-      <div className="sticky bottom-0 flex flex-wrap items-center justify-center gap-2 rounded-xl border bg-card/95 p-2.5 backdrop-blur">
+      {/*
+        Round icon buttons, labels dropped.
+        Every control keeps its `aria-label`, so the meaning is unchanged for
+        assistive tech; what goes is the visible text, which is what made the
+        bar read as a toolbar rather than as the bottom of a call.
+      */}
+      <div className="sticky bottom-0 flex flex-wrap items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2 backdrop-blur-xl">
         <Button
-          variant={state.media.micMuted ? "destructive" : "outline"}
-          size="sm"
+          variant={state.media.micMuted ? "destructive" : "secondary"}
+          size="icon"
+          className="h-11 w-11 rounded-full"
           onClick={() => toggleMic(!state.media.micMuted)}
           aria-pressed={state.media.micMuted}
           aria-label={state.media.micMuted ? "Unmute microphone" : "Mute microphone"}
@@ -423,17 +438,15 @@ export function InterviewRoom({
           ) : (
             <Mic className="h-4 w-4" aria-hidden="true" />
           )}
-          <span className="hidden sm:inline">
-            {state.media.micMuted ? "Unmute" : "Mute"}
-          </span>
         </Button>
 
         {/* Labelled with the ACTION, consistently. The panel above states what
             the camera IS; these must never be the same string or they read as
             contradicting each other. */}
         <Button
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="icon"
+          className="h-11 w-11 rounded-full"
           disabled={!cameraToggleEnabled(cameraState)}
           onClick={() => toggleCamera(cameraState === "CAMERA_ON")}
           aria-pressed={cameraState === "CAMERA_OFF"}
@@ -444,12 +457,12 @@ export function InterviewRoom({
           ) : (
             <CameraOff className="h-4 w-4" aria-hidden="true" />
           )}
-          <span className="hidden sm:inline">{cameraActionLabel(cameraState)}</span>
         </Button>
 
         <Button
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="icon"
+          className="h-11 w-11 rounded-full"
           onClick={() => {
             const next = !speakerMuted;
             setSpeakerMuted(next);
@@ -463,14 +476,30 @@ export function InterviewRoom({
           ) : (
             <Volume2 className="h-4 w-4" aria-hidden="true" />
           )}
-          <span className="hidden sm:inline">
-            {speakerMuted ? "Sound off" : "Sound"}
-          </span>
+        </Button>
+
+        {/* Promoted out of the overflow menu: the brief names captions as a
+            first-class control, and it is also the one toggle a candidate may
+            need mid-answer without hunting for it. */}
+        <Button
+          variant={captionsOn ? "default" : "secondary"}
+          size="icon"
+          className="h-11 w-11 rounded-full"
+          onClick={() => setCaptionsOn((value) => !value)}
+          aria-pressed={captionsOn}
+          aria-label={captionsOn ? "Turn captions off" : "Turn captions on"}
+        >
+          <Captions className="h-4 w-4" aria-hidden="true" />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" aria-label="More options">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-11 w-11 rounded-full"
+              aria-label="More options"
+            >
               <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
@@ -494,10 +523,7 @@ export function InterviewRoom({
             />
             <DeviceRow label="Speaker" ok={!speakerMuted} detail={speakerMuted ? "Muted" : "Working"} />
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setCaptionsOn((value) => !value)}>
-              <Captions aria-hidden="true" />
-              {captionsOn ? "Turn captions off" : "Turn captions on"}
-            </DropdownMenuItem>
+            {/* Captions live on the control bar now, not in here as well. */}
             <DropdownMenuItem
               onSelect={() => router.push(`/interview/${interviewId}/check`)}
             >
@@ -508,16 +534,22 @@ export function InterviewRoom({
         </DropdownMenu>
 
         {/* Separated from the everyday controls so it is not hit by accident. */}
-        <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
+        <span
+          className="mx-1 hidden h-6 w-px bg-white/15 sm:block"
+          aria-hidden="true"
+        />
 
+        {/* Wider than the round controls and the only red thing on screen, so
+            it cannot be hit by accident while reaching for mute. */}
         <Button
           variant="destructive"
-          size="sm"
           onClick={() => setEndOpen(true)}
           disabled={ending}
+          className="h-11 rounded-full px-5"
+          aria-label="End interview"
         >
           <PhoneOff className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">End interview</span>
+          <span className="hidden sm:inline">End</span>
         </Button>
       </div>
 
