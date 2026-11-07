@@ -522,6 +522,16 @@ export function useLiveInterview({
   /** Interviewer loudness, sampled from an animation frame by the meter. */
   const outputLevel = useCallback(() => clientRef.current?.outputLevel() ?? 0, []);
 
+  /**
+   * The session trace, for diagnosing a bad run.
+   *
+   * A function rather than state, and never rendered: reading it costs nothing
+   * until something asks, and wiring 300 entries through React would put
+   * socket internals one careless JSX line away from the candidate's screen.
+   * The client bounds the buffer, so this cannot grow without limit.
+   */
+  const devTrace = useCallback(() => clientRef.current?.devTrace ?? [], []);
+
   const elapsedMs = useMemo(
     () => (liveStartedAtMs === null ? 0 : Date.now() - liveStartedAtMs),
     [liveStartedAtMs],
@@ -536,6 +546,7 @@ export function useLiveInterview({
     elapsedMs,
     requestPermissions,
     attachPreview,
+    devTrace,
     start,
     retry,
     stop,

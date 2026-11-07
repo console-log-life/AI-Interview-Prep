@@ -17,14 +17,14 @@ external-device detection untouched), never weaken a test.
 | — | Repo init + baseline commit | done | `.git`, PROGRESS.md | `c475390`; .env confirmed excluded, 401 files committed |
 | A1 | Interview evidence end-to-end + parseEvidence tests | done | `lib/ai/live/understanding.ts`, `lib/interviews/delivery-service.ts`, `tests/unit/delivery-evidence.test.ts` | Chain verified client→API→DB→report; parseEvidence exported + intent validated; 22 new tests pass |
 | A2 | Clean baseline: suite + typecheck + lint + build | done (build deferred) | — | Suite 45 files/1154 tests PASS · tsc PASS · lint PASS (0 warn) · **build blocked: host OOM**, retry at E1 |
-| B1 | Stale events gated by session generation + turn id | todo | | |
-| B2 | Duplicate turns / idempotent finals / safe completeInterview | todo | | |
-| B3 | Barge-in path correctness | todo | | |
-| B4 | Reconnect teardown, no double handlers, honest ERROR state | todo | | |
-| B5 | Cleanup on end + unmount, no post-unmount setState | todo | | |
-| B6 | Stuck-state watchdogs (SPEAKING/THINKING/CONNECTING) | todo | | |
-| C1 | Graceful failures with human messages + a way forward | todo | | |
-| C2 | State indicator driven by the real state machine | todo | | |
+| B1 | Stale events gated by session generation + turn id | done | `lib/ai/live/client.ts` (audit) | Audited: all 4 socket callbacks already generation-gated; detectTurn guards closedByUser; reducer phase guards absorb late playback. New watchdogs carry the same generation+turnId guard. No change needed |
+| B2 | Duplicate turns / idempotent finals / safe completeInterview | done | `lib/interviews/service.ts` | Audited idempotency (turnId, rememberedTurns, mergeTranscript, endedRef, deliverySentRef correct). Fixed: concurrent completeInterview raced on a unique insert and reported failure on success |
+| B3 | Barge-in path correctness | done | — (audit) | Audited: selfInterruptExpected separates our own hold from a real barge-in; flushPlayback + turnId bump + answer reset on a genuine one; 3 existing tests cover it. Added watchdog disarm on barge-in |
+| B4 | Reconnect teardown, no double handlers, honest ERROR state | done | `hooks/use-live-interview.ts`, `components/interview/live/interview-room.tsx`, `lib/ai/live/session.ts`, `lib/ai/live/types.ts` | Fixed dead retry (clientRef poisoned the start guard); added RETRY event + working "Try again". Socket teardown itself was already correct |
+| B5 | Cleanup on end + unmount, no post-unmount setState | done | — (audit) | Audited: stop() clears timers, closes socket, disposes audio, stops tracks; unmount effect does the same. Watchdog wired into the same teardown paths |
+| B6 | Stuck-state watchdogs (SPEAKING/THINKING/CONNECTING) | done | `lib/ai/live/client.ts`, `lib/ai/live/config.ts`, `tests/integration/live-client-safety.test.ts` | Fixed: CONNECT_TIMEOUT_MS (20s) + RESPONSE_TIMEOUT_MS (45s) watchdogs; 8 tests |
+| C1 | Graceful failures with human messages + a way forward | done | (see B4) | Retry was the missing way forward; failure messages were already human and classified, no stack traces in the UI |
+| C2 | State indicator driven by the real state machine | done | — (audit) | Already correct: one `phase` field drives the indicator, no competing booleans. RETRY reports connection as offline, never fake-connected |
 | C3 | devTrace coverage across the session lifecycle | todo | | |
 | C4 | Latency: clear low-risk wins only | todo | | |
 | D1 | Report page: 0 turns / partial / missing scores | todo | | |

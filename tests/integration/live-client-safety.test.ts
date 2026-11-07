@@ -701,6 +701,116 @@ describe("stuck states are bounded by a watchdog", () => {
   });
 });
 
+/**
+ * The trace has to be able to explain a bad run.
+ *
+ * It is the only record of what happened inside a session: nothing is rendered
+ * to the candidate and no audio is kept, so an interview that went wrong can
+ * be reconstructed from this or not at all. Events were missing at both ends
+ * -- the session opening, the socket connecting, the mic being muted, the
+ * session closing -- which are exactly the lines needed to tell "never
+ * connected" apart from "connected and then went quiet".
+ */
+describe("the session trace covers the lifecycle", () => {
+  function events(client: { devTrace: readonly { event: string }[] }) {
+    return client.devTrace.map((entry) => entry.event);
+  }
+
+  it("opens with the session start, before anything can fail", async () => {
+    const { client } = await startClient();
+    expect(events(client)[0]).toBe("session-started");
+  });
+
+  it("records the socket opening", async () => {
+    const { client } = await startClient();
+    expect(events(client)).toContain("connected");
+  });
+
+  it("records a connect failure", async () => {
+    harness.hangConnect = true;
+    const client = new LiveInterviewClient({
+      grant: GRANT,
+      dispatch: () => {},
+      orchestrator: createOrchestratorState(PLAN),
+    });
+    const starting = client.start(STREAM);
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS + 1000);
+    await starting;
+
+    expect(events(client)).toContain("error");
+    // The failure must be distinguishable from a socket that never opened.
+    expect(events(client)).not.toContain("connected");
+  });
+
+  it("records the mic being muted and unmuted", async () => {
+    const { client } = await startClient();
+    client.setMuted(true);
+    client.setMuted(false);
+
+    expect(events(client)).toContain("mic-muted");
+    expect(events(client)).toContain("mic-unmuted");
+  });
+
+  it("records a reconnect attempt and its result", async () => {
+    const { client } = await startClient();
+    latest().callbacks.onclose();
+    await vi.advanceTimersByTimeAsync(2000);
+    latest().callbacks.onmessage({ setupComplete: {} });
+
+    expect(events(client)).toContain("reconnect-started");
+  });
+
+  it("records speech, the finalized turn and the released turn", async () => {
+    const { client } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({
+      serverContent: { inputTranscription: { text: "We used a read replica." } },
+    });
+
+    const finalizing = (client as unknown as Finalizable).completeCandidateTurn();
+    await vi.advanceTimersByTimeAsync(3000);
+    await finalizing;
+
+    const traced = events(client);
+    expect(traced).toContain("candidate-turn-finalized");
+    expect(traced).toContain("turn-released");
+  });
+
+  it("records playback starting and being interrupted", async () => {
+    const { client } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({
+      serverContent: { modelTurn: { parts: [{ inlineData: { data: "AAAA" } }] } },
+    });
+    callbacks.onmessage({ serverContent: { interrupted: true } });
+
+    expect(events(client)).toContain("interruption");
+  });
+
+  it("closes with the session end", async () => {
+    const { client } = await startClient();
+    await client.stop();
+    expect(events(client).at(-1)).toBe("session-ended");
+  });
+
+  it("stamps every entry with the generation and turn that produced it", async () => {
+    // The field that makes a reconnect bug legible at all.
+    const { client } = await startClient();
+    for (const entry of client.devTrace) {
+      expect(typeof entry.generation).toBe("number");
+      expect(typeof entry.turnId).toBe("number");
+    }
+  });
+
+  it("stays bounded, so a long interview cannot grow it without limit", async () => {
+    const { client } = await startClient();
+    for (let i = 0; i < 400; i += 1) client.setMuted(i % 2 === 0);
+    expect(client.devTrace.length).toBeLessThanOrEqual(300);
+  });
+});
+
 describe("a hesitation keeps the floor with the candidate", () => {
   it("does not answer 'um, let me think' and does not hang", async () => {
     const { client, events } = await startClient();

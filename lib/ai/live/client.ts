@@ -298,6 +298,11 @@ export class LiveInterviewClient {
     this.closedByUser = false;
     this.startedAtMs = Date.now();
 
+    // Traced before anything can fail, so a session that dies during setup
+    // still has a first line explaining what was attempted.
+    this.trace("session-started", {
+      note: `model ${this.options.grant.model}, ${this.options.grant.voiceName}`,
+    });
     this.dispatch({ type: "CONNECT_STARTED" });
 
     this.audio = new LiveAudioManager({
@@ -354,6 +359,7 @@ export class LiveInterviewClient {
           onopen: () => {
             if (!isCurrent()) return;
             this.reconnectAttempts = 0;
+            this.trace("connected", { note: `generation ${generation}` });
             this.dispatch({ type: "CONNECTED", atMs: Date.now() });
           },
           onmessage: (message: LiveServerMessage) => {
@@ -1373,6 +1379,9 @@ export class LiveInterviewClient {
 
   setMuted(muted: boolean): void {
     this.audio?.setMuted(muted);
+    // Worth a line of its own: a candidate who muted and forgot is otherwise
+    // indistinguishable in the trace from one the detector never heard.
+    this.trace(muted ? "mic-muted" : "mic-unmuted", {});
     this.dispatch({ type: "TOGGLE_MIC", muted });
   }
 
@@ -1491,6 +1500,11 @@ export class LiveInterviewClient {
 
   /** Ends the session and releases every device. */
   async stop(): Promise<void> {
+    // Traced before the generation is retired, or the entry would be filed
+    // against a session that no longer exists.
+    this.trace("session-ended", {
+      note: `${this.speechTurns.length} candidate turns, ${this.evidence.length} graded`,
+    });
     this.closedByUser = true;
     /**
      * Retire every callback before anything is torn down.
@@ -1534,6 +1548,8 @@ export class LiveInterviewClient {
 
 /** Events that describe the candidate rather than the interviewer. */
 const CANDIDATE_EVENTS: ReadonlySet<LiveTraceEntry["event"]> = new Set([
+  "mic-muted",
+  "mic-unmuted",
   "candidate-activity-start",
   "candidate-activity-end",
   "speech-start",
@@ -1559,6 +1575,14 @@ export type LiveTraceEntry = {
   /** The candidate turn in flight, or 0 before the first answer. */
   turnId: number;
   event:
+    /** The room opened a session: the first line of every trace. */
+    | "session-started"
+    /** The socket opened. Not yet proof that setup completed. */
+    | "connected"
+    | "mic-muted"
+    | "mic-unmuted"
+    /** The candidate ended it, or the room unmounted. */
+    | "session-ended"
     | "question-asked"
     | "candidate-activity-start"
     | "candidate-activity-end"
