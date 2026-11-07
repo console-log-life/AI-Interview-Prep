@@ -19,6 +19,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "verify": "npm run typecheck && npm run lint && npm run test",
     "smoke:live": "tsx scripts/live-turn-control-smoke.ts",
+    "smoke:ai": "tsx scripts/smoke-real-ai.ts",
     "harness:speech": "tsx scripts/live-speech-harness.ts"
   },
   "prisma": {
