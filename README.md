@@ -279,6 +279,61 @@ Auth lives behind `lib/auth/`, so swapping providers touches `auth.ts`,
 
 ## Architecture
 
+### Architecture at a glance
+
+```mermaid
+flowchart TB
+    subgraph browser["Browser"]
+        UI["React components<br/>app/, components/"]
+        LIVE["Live voice client<br/>lib/ai/live/client.ts"]
+    end
+
+    subgraph server["Next.js server (Node runtime)"]
+        RH["Route handlers + server components<br/>app/api/**, app/**/page.tsx"]
+        GUARD["requireUser - Zod parse"]
+        SVC["Services<br/>lib/interviews, lib/resume, lib/coding, lib/skills"]
+        QP["Queries + providers<br/>lib/db/queries/**, lib/ai, lib/storage"]
+        GRANT["Ephemeral token mint<br/>lib/ai/live/grant.ts"]
+    end
+
+    subgraph external["External"]
+        DB[("PostgreSQL<br/>Prisma")]
+        LLM["LLM provider<br/>Gemini or Claude"]
+        GLIVE["Gemini Live API<br/>realtime audio"]
+        OBJ["S3 or local disk"]
+        J0["Judge0"]
+    end
+
+    UI -->|"fetch"| RH
+    RH --> GUARD --> SVC --> QP
+    QP --> DB
+    QP --> LLM
+    QP --> OBJ
+    QP --> J0
+
+    LIVE -->|"POST /live - asks for a session"| RH
+    RH --> GRANT
+    GRANT -->|"single-use token, expires in minutes"| LLM
+    GRANT -.->|"token only, never the API key"| LIVE
+    LIVE <==>|"WebSocket: audio in, audio + transcript out"| GLIVE
+    LIVE -->|"transcript flush every 15s"| RH
+
+    classDef never fill:#fff,stroke:#c00,stroke-width:2px,color:#c00
+    class UI never
+```
+
+The red outline on the component layer is the one rule the whole structure
+exists to enforce: **a component never imports Prisma and never imports an AI
+SDK.** Every mutation goes route handler → auth guard → Zod validation →
+service → query/provider.
+
+The live voice path is the exception worth tracing twice. The browser needs its
+own socket to Gemini, which would normally mean shipping a key to the client.
+Instead the server mints a **single-use ephemeral token** that expires in
+minutes (`lib/ai/live/grant.ts`), and that is the only credential the browser
+ever sees. Audio streams directly between the browser and Google; it never
+passes through this server, and no frames are stored anywhere.
+
 ### Layering
 
 ```
