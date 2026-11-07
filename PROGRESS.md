@@ -98,6 +98,26 @@ the bundling and prerender stage.
 **To verify on a machine with free RAM:** `npm run build`. Nothing in the code
 needs to change for it.
 
+#### What the dev server did confirm
+`next dev` was started twice to get past code inspection, and it did boot:
+
+```
+[OK] Compiled /instrumentation in 3.1s (26 modules)
+[OK] Ready in 7.9s
+[OK] Compiled /middleware in 2.3s (235 modules)
+[OK] GET / 200 in 14008ms
+```
+
+So: the server boots, the new `instrumentation.ts` compiles and its env
+assertion passes against the real `.env`, middleware compiles, and the landing
+page renders 200. Compiling any *further* page then failed with
+`RangeError: Failed to allocate memory` inside the dev server itself — which
+confirms the wall is host memory and webpack, not `next build` specifically.
+The server was stopped afterwards; no node process is left running.
+
+This is HTTP-level verification. **No browser, camera or microphone was used at
+any point in this session.**
+
 **Host commands that work here** (use these, not the bare npm scripts):
 ```bash
 npx vitest run --pool=forks --poolOptions.forks.singleFork=true
