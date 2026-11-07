@@ -32,7 +32,7 @@ external-device detection untouched), never weaken a test.
 | D3 | Env check: clear message + complete .env.example | done | `lib/env.ts`, `instrumentation.ts`, `tests/unit/env-required.test.ts` | .env.example verified complete (every var the code reads is listed; only NODE_ENV absent, correctly). Added startup assertion for DATABASE_URL + AUTH_SECRET — previously surfaced as a Prisma/Auth.js error mid-page; 11 tests |
 | D4 | README "Run locally" + "Demo flow" | done | `README.md`, `.env.example` | Added Demo flow (10 steps + a 10-minute cut + what needs setup first), pre-demo checks, TOC entry. "Run locally" already existed and is accurate. Added missing SEED_DEMO_USERS |
 | D5 | Sweep: console.log noise, TODOs, dead buttons, broken links | done | — (audit, no changes needed) | Clean: 0 console.log (all 20 console.* are prefixed console.error in real error paths); 0 TODO/FIXME; 0 dead buttons or href="#"; every static, dynamic and nav link resolves to a real route |
-| E1 | Final validation: suite + typecheck + lint + build | done (build blocked) | — | 46 files / **1192 tests PASS** (baseline 1132) · `tsc --noEmit` PASS · `eslint . --max-warnings 0` PASS · **`next build` BLOCKED — host out of memory, 5 attempts** |
+| E1 | Final validation: suite + typecheck + lint + build | done (build blocked) | — | **46 files / 1192 tests PASS** (baseline 1132) with per-file process isolation · `tsc --noEmit` PASS · `eslint . --max-warnings 0` PASS · **`next build` BLOCKED — host OOM, 5 attempts** |
 | E2 | Re-read whole-session diff for regressions | done | — | Reviewed all 19 files / 1271+ / 43- . AnswerIntent union member-identical (type-safe refactor); completeInterview return type unchanged; connect() wrapping verified; Promise.all failure path cleaned up by the stop() added in B4. No regressions found |
 
 ---
@@ -71,11 +71,12 @@ Consequences, with workarounds:
   to allocate memory` loading `next.config.ts`; `--max-old-space-size=1024` →
   `VirtualAlloc failed`. `prisma generate` alone succeeds. This is the host
   refusing to commit memory, not a code fault. Retried at E1.
-- **Vitest must run single-fork.** The default one-worker-per-core OOMs even on
-  a known-good file. Use:
-  `npx vitest run --pool=forks --poolOptions.forks.singleFork=true`
-  This is a host workaround only — `vitest.config.ts` is deliberately unchanged
-  so CI keeps its parallelism.
+- **Vitest must run one worker at a time.** The default one-worker-per-core
+  OOMs even on a known-good file. Use:
+  `npx vitest run --pool=forks --poolOptions.forks.maxForks=1 --poolOptions.forks.minForks=1`
+  **Do not use `--poolOptions.forks.singleFork=true`** — see the isolation note
+  below. `vitest.config.ts` is deliberately unchanged so CI keeps its
+  parallelism.
 - PowerShell itself intermittently fails to start under this pressure.
 
 #### `next build` — blocked after 5 attempts (final status)
@@ -120,7 +121,26 @@ any point in this session.**
 
 **Host commands that work here** (use these, not the bare npm scripts):
 ```bash
-npx vitest run --pool=forks --poolOptions.forks.singleFork=true
+npx vitest run --pool=forks --poolOptions.forks.maxForks=1 --poolOptions.forks.minForks=1
 NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx tsc --noEmit
 NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx eslint . --max-warnings 0
 ```
+
+### Pre-existing: the suite leaks `process.env` between files
+Found while validating, and **not caused by anything in this session.**
+
+Running every file in one shared process (`singleFork=true`) fails 5 files with
+0 failed assertions: the "with no credentials configured" tests in
+`service-availability.test.ts` and `interview-flow.test.ts` see a real
+`GEMINI_API_KEY` and attempt a live call. `tests/unit/ai-registry.test.ts`
+mutates `process.env` in `loadRegistry` and restores it there rather than in an
+`afterEach`, so whatever it set last outlives the file. Module isolation does
+not help, because `process.env` is process state, not a module.
+
+It is invisible under `npm test`, which gives each file its own worker, and
+`service-availability.test.ts` passes 7/7 on its own. It only bites in a
+single-process run, and it is order-dependent — two earlier single-fork runs in
+this session happened to pass.
+
+Low priority (the shipped command is unaffected), but worth an `afterEach`
+restore in `ai-registry.test.ts` if the suite is ever run in one process.
