@@ -9,6 +9,7 @@ import { ServiceNotice } from "@/components/shared/service-notice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { requireUserPage } from "@/lib/auth/session";
 import { executionAvailable } from "@/lib/coding";
 import { listProblems, listSubmissions } from "@/lib/coding/service";
@@ -25,7 +26,12 @@ export const dynamic = "force-dynamic";
 export default async function CodingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ difficulty?: string; topic?: string; page?: string }>;
+  searchParams: Promise<{
+    difficulty?: string;
+    topic?: string;
+    search?: string;
+    page?: string;
+  }>;
 }) {
   const user = await requireUserPage("/coding");
   const params = await searchParams;
@@ -37,10 +43,36 @@ export default async function CodingPage({
       ? params.difficulty
       : undefined;
 
-  const [{ items, total }, solved, recent] = await Promise.all([
+  const search = params.search?.trim() || undefined;
+  const topic = params.topic?.trim() || undefined;
+
+  /**
+   * Builds a link that keeps the other filters.
+   *
+   * With 60 problems the filters are only useful in combination — narrowing to
+   * Medium and then losing it when picking a topic is what makes a filter bar
+   * feel broken.
+   */
+  const filterHref = (next: {
+    difficulty?: string | null;
+    topic?: string | null;
+  }): string => {
+    const query = new URLSearchParams();
+    const nextDifficulty =
+      next.difficulty === undefined ? difficulty : next.difficulty;
+    const nextTopic = next.topic === undefined ? topic : next.topic;
+    if (nextDifficulty) query.set("difficulty", nextDifficulty);
+    if (nextTopic) query.set("topic", nextTopic);
+    if (search) query.set("search", search);
+    const qs = query.toString();
+    return qs ? `/coding?${qs}` : "/coding";
+  };
+
+  const [{ items, total }, solved, recent, topicRows] = await Promise.all([
     listProblems({
       difficulty,
-      topic: params.topic,
+      topic,
+      search,
       page: Number(params.page) || 1,
       pageSize: 30,
     }),
@@ -50,7 +82,17 @@ export default async function CodingPage({
       distinct: ["problemId"],
     }),
     listSubmissions(user.id, undefined, 5),
+    // Topics come from the bank itself, so the list cannot drift out of date
+    // as problems are added.
+    prisma.codingProblem.findMany({
+      where: { isPublished: true },
+      select: { topic: true },
+      distinct: ["topic"],
+      orderBy: { topic: "asc" },
+    }),
   ]);
+
+  const topics = topicRows.map((row) => row.topic);
 
   const solvedIds = new Set(solved.map((row) => row.problemId));
 
@@ -78,28 +120,94 @@ export default async function CodingPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <section aria-labelledby="problems-heading" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="problems-heading" className="text-sm font-semibold">
-              Problems
-            </h2>
-            <nav aria-label="Filter by difficulty" className="flex gap-1.5">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="problems-heading" className="type-card-title">
+                Problems
+                <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
+                  {total}
+                </span>
+              </h2>
+
+              <nav aria-label="Filter by difficulty" className="flex gap-1.5">
+                <Button
+                  asChild
+                  size="sm"
+                  variant={!difficulty ? "secondary" : "ghost"}
+                  className="rounded-full"
+                >
+                  <Link href={filterHref({ difficulty: null })}>All</Link>
+                </Button>
+                {(["EASY", "MEDIUM", "HARD"] as const).map((level) => (
+                  <Button
+                    key={level}
+                    asChild
+                    size="sm"
+                    variant={difficulty === level ? "secondary" : "ghost"}
+                    className="rounded-full"
+                  >
+                    <Link href={filterHref({ difficulty: level })}>
+                      {level.charAt(0) + level.slice(1).toLowerCase()}
+                    </Link>
+                  </Button>
+                ))}
+              </nav>
+            </div>
+
+            {/*
+              A plain GET form, so search works with no client JavaScript and
+              no new component. The hidden fields carry the active filters
+              through, which is what stops searching from silently clearing
+              them.
+            */}
+            <form method="get" action="/coding" className="flex gap-2" role="search">
+              {difficulty && (
+                <input type="hidden" name="difficulty" value={difficulty} />
+              )}
+              {topic && <input type="hidden" name="topic" value={topic} />}
+              <label htmlFor="coding-search" className="sr-only">
+                Search problems by title
+              </label>
+              <Input
+                id="coding-search"
+                type="search"
+                name="search"
+                defaultValue={search ?? ""}
+                placeholder="Search problems by title…"
+                className="h-10 rounded-full"
+              />
+              <Button type="submit" className="h-10 shrink-0 rounded-full px-5">
+                Search
+              </Button>
+              {(search || topic || difficulty) && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="h-10 shrink-0 rounded-full px-4"
+                >
+                  <Link href="/coding">Clear</Link>
+                </Button>
+              )}
+            </form>
+
+            <nav aria-label="Filter by topic" className="flex flex-wrap gap-1.5">
               <Button
                 asChild
                 size="sm"
-                variant={!difficulty ? "secondary" : "ghost"}
+                variant={!topic ? "secondary" : "ghost"}
+                className="h-7 rounded-full px-3 text-xs"
               >
-                <Link href="/coding">All</Link>
+                <Link href={filterHref({ topic: null })}>All topics</Link>
               </Button>
-              {(["EASY", "MEDIUM", "HARD"] as const).map((level) => (
+              {topics.map((name) => (
                 <Button
-                  key={level}
+                  key={name}
                   asChild
                   size="sm"
-                  variant={difficulty === level ? "secondary" : "ghost"}
+                  variant={topic === name ? "secondary" : "ghost"}
+                  className="h-7 rounded-full px-3 text-xs"
                 >
-                  <Link href={`/coding?difficulty=${level}`}>
-                    {level.charAt(0) + level.slice(1).toLowerCase()}
-                  </Link>
+                  <Link href={filterHref({ topic: name })}>{name}</Link>
                 </Button>
               ))}
             </nav>
@@ -109,7 +217,16 @@ export default async function CodingPage({
             <EmptyState
               icon={Braces}
               title="No problems found"
-              description="No published problems match that filter. Run the seed script to load the starter problem set."
+              description={
+                search || topic || difficulty
+                  ? "Nothing matches those filters. Try clearing one of them."
+                  : "No published problems yet. Run the seed script to load the problem set."
+              }
+              action={
+                search || topic || difficulty
+                  ? { label: "Clear filters", href: "/coding" }
+                  : undefined
+              }
             />
           ) : (
             <ul className="divide-y rounded-lg border">
