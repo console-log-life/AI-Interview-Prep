@@ -15,8 +15,8 @@ external-device detection untouched), never weaken a test.
 | # | Item | Status | Files touched | Result |
 |---|------|--------|---------------|--------|
 | — | Repo init + baseline commit | done | `.git`, PROGRESS.md | `c475390`; .env confirmed excluded, 401 files committed |
-| A1 | Interview evidence end-to-end + parseEvidence tests | todo | | |
-| A2 | Clean baseline: suite + typecheck + lint + build | todo | | |
+| A1 | Interview evidence end-to-end + parseEvidence tests | done | `lib/ai/live/understanding.ts`, `lib/interviews/delivery-service.ts`, `tests/unit/delivery-evidence.test.ts` | Chain verified client→API→DB→report; parseEvidence exported + intent validated; 22 new tests pass |
+| A2 | Clean baseline: suite + typecheck + lint + build | done (build deferred) | — | Suite 45 files/1154 tests PASS · tsc PASS · lint PASS (0 warn) · **build blocked: host OOM**, retry at E1 |
 | B1 | Stale events gated by session generation + turn id | todo | | |
 | B2 | Duplicate turns / idempotent finals / safe completeInterview | todo | | |
 | B3 | Barge-in path correctness | todo | | |
@@ -56,3 +56,18 @@ external-device detection untouched), never weaken a test.
 - Repo did not exist; `git init` + baseline commit was required before any
   change so that per-item commits and the E2 session diff are possible.
 - Commits carry no AI attribution lines, per session instruction.
+
+### Host memory limit (discovered at A2)
+This machine has 7.9 GB total with ~0.8 GB free and an exhausted commit limit.
+Consequences, with workarounds:
+
+- **`next build` cannot run.** Two attempts: default heap → `RangeError: Failed
+  to allocate memory` loading `next.config.ts`; `--max-old-space-size=1024` →
+  `VirtualAlloc failed`. `prisma generate` alone succeeds. This is the host
+  refusing to commit memory, not a code fault. Retried at E1.
+- **Vitest must run single-fork.** The default one-worker-per-core OOMs even on
+  a known-good file. Use:
+  `npx vitest run --pool=forks --poolOptions.forks.singleFork=true`
+  This is a host workaround only — `vitest.config.ts` is deliberately unchanged
+  so CI keeps its parallelism.
+- PowerShell itself intermittently fails to start under this pressure.
