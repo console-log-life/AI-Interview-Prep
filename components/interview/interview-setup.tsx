@@ -142,9 +142,9 @@ export function InterviewSetup({
   return (
     <form onSubmit={start} className="space-y-6">
       {/* Mode */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">How do you want to practise?</CardTitle>
+          <CardTitle className="type-card-title">How do you want to practise?</CardTitle>
           <CardDescription>
             Both produce a scored report. Only one of them asks you to speak.
           </CardDescription>
@@ -180,9 +180,9 @@ export function InterviewSetup({
       </Card>
 
       {/* Basics */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Who is being interviewed</CardTitle>
+          <CardTitle className="type-card-title">Who is being interviewed</CardTitle>
           <CardDescription>
             The interviewer tailors every question to these.
           </CardDescription>
@@ -223,9 +223,9 @@ export function InterviewSetup({
       </Card>
 
       {/* Round type */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Round type</CardTitle>
+          <CardTitle className="type-card-title">Round type</CardTitle>
           <CardDescription>What kind of interview is this?</CardDescription>
         </CardHeader>
         <CardContent>
@@ -236,8 +236,8 @@ export function InterviewSetup({
                 <label
                   key={value}
                   className={cn(
-                    "cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                    type === value && "border-primary bg-accent",
+                    "cursor-pointer rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                    type === value && "border-primary bg-primary/5 ring-1 ring-primary shadow-sm",
                   )}
                 >
                   <input
@@ -262,9 +262,9 @@ export function InterviewSetup({
       </Card>
 
       {/* Interviewer personality */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Interviewer personality</CardTitle>
+          <CardTitle className="type-card-title">Interviewer personality</CardTitle>
           <CardDescription>
             Affects tone and how hard they press. Never abusive or personal,
             whichever you pick.
@@ -278,8 +278,8 @@ export function InterviewSetup({
                 <label
                   key={value}
                   className={cn(
-                    "cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                    persona === value && "border-primary bg-accent",
+                    "cursor-pointer rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                    persona === value && "border-primary bg-primary/5 ring-1 ring-primary shadow-sm",
                   )}
                 >
                   <input
@@ -307,9 +307,9 @@ export function InterviewSetup({
       </Card>
 
       {/* Format + context */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Format and context</CardTitle>
+          <CardTitle className="type-card-title">Format and context</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-3">
@@ -414,7 +414,13 @@ export function InterviewSetup({
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" loading={loading} className="w-full">
+      {/* The one primary action on the page, so it carries the gradient. */}
+      <Button
+        type="submit"
+        size="lg"
+        loading={loading}
+        className="gradient-cta h-12 w-full rounded-full text-base text-white shadow-lg transition-transform hover:scale-[1.01] hover:shadow-xl"
+      >
         <Bot aria-hidden="true" />
         {mode === "MOCK" ? "Continue to device check" : "Start chat interview"}
       </Button>
@@ -442,8 +448,8 @@ function ModeOption({
   return (
     <label
       className={cn(
-        "cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-        checked && "border-primary bg-accent",
+        "cursor-pointer rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+        checked && "border-primary bg-primary/5 ring-1 ring-primary shadow-sm",
         disabled && "cursor-not-allowed opacity-60 hover:bg-transparent",
       )}
     >
