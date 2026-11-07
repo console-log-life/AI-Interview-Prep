@@ -645,4 +645,146 @@ export const SEED_QUESTIONS: SeedQuestion[] = [
     tags: ["system-design"],
     points: 5,
   },
+
+  // --- Added so every technical category reaches the three option-based
+  // --- questions `seedAssessments` needs before it will build an assessment.
+  // --- Original content, written for this project from standard fundamentals.
+  {
+    text: "In a language with single inheritance, what problem does composition most directly avoid?",
+    category: "OOP",
+    topic: "Composition and inheritance",
+    difficulty: "MEDIUM",
+    type: "MCQ",
+    options: [
+      T("Coupling a subclass to implementation details of its parent that may change"),
+      F("The need to write interfaces at all"),
+      F("Having to allocate objects on the heap"),
+      F("Method name collisions, which the compiler always resolves anyway"),
+    ],
+    explanation:
+      "Inheritance exposes a subclass to its parent's internals: a change in the parent's protected state or call order can silently break it, which is the fragile base class problem. Composition depends only on a public interface, so the collaborator can change internally without affecting its user.",
+    skillsTested: ["Object-oriented design", "Coupling"],
+    tags: ["oop", "composition", "inheritance"],
+  },
+  {
+    text: "A deadlock requires mutual exclusion, hold-and-wait, no preemption and circular wait to all hold at once.",
+    category: "OPERATING_SYSTEMS",
+    topic: "Deadlock",
+    difficulty: "MEDIUM",
+    type: "TRUE_FALSE",
+    options: [T("True"), F("False")],
+    explanation:
+      "These are Coffman's four necessary conditions. Because all four must hold simultaneously, deadlock prevention works by denying any one of them — for example imposing a global lock ordering removes the possibility of circular wait.",
+    skillsTested: ["Deadlock", "Concurrency"],
+    tags: ["os", "deadlock", "concurrency"],
+  },
+  {
+    text: "Why does TCP use a three-way handshake rather than a two-way exchange?",
+    category: "COMPUTER_NETWORKS",
+    topic: "TCP",
+    difficulty: "MEDIUM",
+    type: "MCQ",
+    options: [
+      T("So both sides confirm each other's initial sequence number before any data is sent"),
+      F("To encrypt the connection before data transfer begins"),
+      F("To let the client choose which port the server will listen on"),
+      F("To measure available bandwidth before sending"),
+    ],
+    explanation:
+      "Each side must learn and acknowledge the other's starting sequence number, which is what lets both detect loss, reordering and duplicates from an earlier connection. A two-way exchange would leave the initiator's sequence number unacknowledged. TCP provides no encryption — that is TLS running above it.",
+    skillsTested: ["TCP", "Protocol design"],
+    tags: ["networks", "tcp", "handshake"],
+  },
+  {
+    text: "In Java, what is the practical difference between declaring a field `final` and declaring it `volatile`?",
+    category: "JAVA",
+    topic: "Concurrency and immutability",
+    difficulty: "HARD",
+    type: "MCQ",
+    options: [
+      T("`final` prevents reassignment after construction; `volatile` allows reassignment but makes each write visible to other threads"),
+      F("Both prevent reassignment, but `volatile` also makes the field thread-safe"),
+      F("`final` applies to primitives and `volatile` only to object references"),
+      F("`volatile` prevents reassignment and `final` only hints at it to the compiler"),
+    ],
+    explanation:
+      "They solve different problems. `final` is about identity — the reference cannot be reassigned, though a mutable object it points at can still change. `volatile` is about visibility and ordering: reads and writes are not reordered around it and a write is immediately visible to other threads, but it provides no atomicity for compound operations such as increment.",
+    skillsTested: ["Java memory model", "Concurrency"],
+    tags: ["java", "concurrency", "volatile"],
+  },
+  {
+    text: "What does Python's Global Interpreter Lock prevent?",
+    category: "PYTHON",
+    topic: "Concurrency",
+    difficulty: "MEDIUM",
+    type: "MCQ",
+    options: [
+      T("Two threads in one CPython process executing Python bytecode at the same instant"),
+      F("Multiple processes running Python code in parallel"),
+      F("Any use of threads in Python at all"),
+      F("Race conditions in Python programs, which the GIL makes impossible"),
+    ],
+    explanation:
+      "The GIL serialises bytecode execution within a single CPython process, so threads give no speed-up on CPU-bound work — multiprocessing or a native extension does. Threads still help for I/O-bound work, because the GIL is released while waiting. It does not make code race-free: a compound operation can still be interleaved between bytecodes.",
+    skillsTested: ["Python internals", "Concurrency"],
+    tags: ["python", "gil", "concurrency"],
+  },
+  {
+    text: "In JavaScript, `0.1 + 0.2 === 0.3` evaluates to false.",
+    category: "JAVASCRIPT",
+    topic: "Numbers",
+    difficulty: "EASY",
+    type: "TRUE_FALSE",
+    options: [T("True"), F("False")],
+    explanation:
+      "JavaScript numbers are IEEE-754 doubles, and neither 0.1 nor 0.2 is exactly representable in binary, so the sum is very slightly above 0.3. Compare with a tolerance — `Math.abs(a - b) < Number.EPSILON` — or work in integers, for example counting paise rather than rupees.",
+    skillsTested: ["Floating point", "JavaScript fundamentals"],
+    tags: ["javascript", "numbers", "floating-point"],
+  },
+  {
+    text: "Five friends sit in a row. Priya is not at either end. Rahul sits immediately to Priya's right. Only two people sit to the left of Priya. Which position does Rahul occupy, counting from the left?",
+    category: "LOGICAL_REASONING",
+    topic: "Seating arrangement",
+    difficulty: "MEDIUM",
+    type: "MCQ",
+    options: [F("Second"), F("Third"), T("Fourth"), F("Fifth")],
+    explanation:
+      "Two people sit to Priya's left, so Priya is third. Rahul is immediately to her right, which is the fourth position. This is consistent with Priya not being at either end.",
+    skillsTested: ["Logical reasoning", "Arrangement"],
+    tags: ["reasoning", "seating"],
+  },
+  {
+    text: "A read-heavy service adds a cache in front of its database. Which problem does a cache introduce that the database alone did not have?",
+    category: "SYSTEM_DESIGN",
+    topic: "Caching",
+    difficulty: "MEDIUM",
+    type: "MCQ",
+    options: [
+      T("Two copies of the same data that can disagree, so staleness has to be managed"),
+      F("Higher read latency, since every read now takes two network hops"),
+      F("Loss of durability, because caches cannot be persisted"),
+      F("Inability to scale reads horizontally"),
+    ],
+    explanation:
+      "A cache is a second copy, so correctness now depends on invalidation: a TTL bounds how stale a read can be, and write-through or explicit invalidation narrows the window further. Reads normally get faster, not slower, because the cache is checked first and the database is only consulted on a miss.",
+    skillsTested: ["Caching", "System design trade-offs"],
+    tags: ["system-design", "caching", "consistency"],
+  },
+  {
+    text: "Which statement about horizontal and vertical scaling is correct?",
+    category: "SYSTEM_DESIGN",
+    topic: "Scaling",
+    difficulty: "EASY",
+    type: "MCQ",
+    options: [
+      T("Vertical scaling needs no change to application design but has a hard ceiling; horizontal scaling has no such ceiling but requires the application to tolerate more than one instance"),
+      F("Horizontal scaling is always cheaper than vertical scaling at every size"),
+      F("Vertical scaling removes the single point of failure that horizontal scaling creates"),
+      F("Only stateless applications can be scaled vertically"),
+    ],
+    explanation:
+      "Vertical scaling — a bigger machine — is the simpler first move precisely because the application does not change, but it stops at the largest instance available and leaves one machine to lose. Horizontal scaling removes that ceiling and that single point of failure, at the cost of needing shared session state, coordination and a load balancer.",
+    skillsTested: ["Scalability", "System design trade-offs"],
+    tags: ["system-design", "scaling"],
+  },
 ];
