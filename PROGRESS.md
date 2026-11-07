@@ -27,9 +27,9 @@ external-device detection untouched), never weaken a test.
 | C2 | State indicator driven by the real state machine | done | — (audit) | Already correct: one `phase` field drives the indicator, no competing booleans. RETRY reports connection as offline, never fake-connected |
 | C3 | devTrace coverage across the session lifecycle | done | `lib/ai/live/client.ts`, `hooks/use-live-interview.ts`, `tests/integration/live-client-safety.test.ts` | Added session-started / connected / mic-muted / mic-unmuted / session-ended; exposed devTrace() from the hook (nothing consumed it before); 10 tests |
 | C4 | Latency: clear low-risk wins only | done | `lib/ai/live/client.ts`, `lib/ai/live/audio.ts`, `hooks/use-live-interview.ts` | 3 safe wins: playback+capture worklet fetches in parallel, resume() in parallel, closing flush+delivery POSTs in parallel. Declined overlapping connect() with audio setup (first audio could arrive before the graph exists) |
-| D1 | Report page: 0 turns / partial / missing scores | todo | | |
-| D2 | Text-mode interview path still works | todo | | |
-| D3 | Env check: clear message + complete .env.example | todo | | |
+| D1 | Report page: 0 turns / partial / missing scores | done | — (audit) | Verified: 0 answers → EmptyState (no invented scores); no report → ReportRetry + transcript link; delivery renders outside that branch so a voice run with 0 graded turns still shows real measurements; all score/text columns non-nullable so "missing scores" degrades to the no-report path; no falsy-zero bugs (only `?? 0`) |
+| D2 | Text-mode interview path still works | done | — (verified) | Text path shares only completeInterview + parseEvidence with the changed code; 97 tests across interview-flow, adaptive, intelligence, evidence-report and delivery-evidence all pass |
+| D3 | Env check: clear message + complete .env.example | done | `lib/env.ts`, `instrumentation.ts`, `tests/unit/env-required.test.ts` | .env.example verified complete (every var the code reads is listed; only NODE_ENV absent, correctly). Added startup assertion for DATABASE_URL + AUTH_SECRET — previously surfaced as a Prisma/Auth.js error mid-page; 11 tests |
 | D4 | README "Run locally" + "Demo flow" | todo | | |
 | D5 | Sweep: console.log noise, TODOs, dead buttons, broken links | todo | | |
 | E1 | Final validation: suite + typecheck + lint + build | todo | | |

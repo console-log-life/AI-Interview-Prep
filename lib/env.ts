@@ -117,6 +117,52 @@ export const env = {
 } as const;
 
 /**
+ * The variables the app cannot start without.
+ *
+ * Everything else in `env` has a working default or a feature-level
+ * "not configured" notice, so these two are the whole list: without a database
+ * nothing loads, and without a session secret nobody can sign in.
+ */
+const REQUIRED_ENV = ["DATABASE_URL", "AUTH_SECRET"] as const;
+
+/**
+ * Fails fast, naming what to fix.
+ *
+ * Without this the two failures surface a long way from their cause: a missing
+ * `DATABASE_URL` reaches the candidate as a Prisma initialization error on the
+ * first query, and a missing `AUTH_SECRET` as an Auth.js `MissingSecret` on the
+ * first sign-in attempt. Both name a library rather than the line to add, and
+ * both arrive after the app has apparently started.
+ *
+ * Called from `instrumentation.ts`, which Next runs once per server start.
+ * Deliberately not a module side-effect: `env` is imported throughout `lib/`,
+ * and throwing on import would make every unit test depend on a database URL
+ * it never uses.
+ */
+export function missingRequiredEnv(): string[] {
+  return REQUIRED_ENV.filter((key) => !process.env[key]?.trim());
+}
+
+/** The message shown when startup cannot continue. */
+export function missingEnvMessage(missing: string[]): string {
+  const plural = missing.length > 1 ? "s" : "";
+  return [
+    `Missing required environment variable${plural}: ${missing.join(", ")}.`,
+    "",
+    "Copy .env.example to .env and set:",
+    ...missing.map((key) => `  ${key}=...`),
+    "",
+    "DATABASE_URL is a Postgres connection string.",
+    "AUTH_SECRET is any long random string — `npx auth secret` writes one.",
+  ].join("\n");
+}
+
+export function assertRequiredEnv(): void {
+  const missing = missingRequiredEnv();
+  if (missing.length > 0) throw new Error(missingEnvMessage(missing));
+}
+
+/**
  * True when the AI provider has everything it needs to make a real call.
  *
  * Each provider is checked against its own credential: having an Anthropic key
