@@ -126,21 +126,32 @@ NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx tsc --noEmit
 NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx eslint . --max-warnings 0
 ```
 
-### Pre-existing: the suite leaks `process.env` between files
-Found while validating, and **not caused by anything in this session.**
+### Pre-existing: 5 files are not isolated when they share one process
+Found while validating, and **not caused by anything in this session** — every
+file passes under the project's own `npm test` and under `maxForks=1`.
 
-Running every file in one shared process (`singleFork=true`) fails 5 files with
-0 failed assertions: the "with no credentials configured" tests in
-`service-availability.test.ts` and `interview-flow.test.ts` see a real
-`GEMINI_API_KEY` and attempt a live call. `tests/unit/ai-registry.test.ts`
-mutates `process.env` in `loadRegistry` and restores it there rather than in an
-`afterEach`, so whatever it set last outlives the file. Module isolation does
-not help, because `process.env` is process state, not a module.
+**Verified symptom.** With `singleFork=true` (all 46 files in one process), 5
+files fail while **0 assertions fail**: the "with no credentials configured"
+tests in `service-availability.test.ts` and `interview-flow.test.ts` behave as
+though an AI provider were configured, and the run logs a real
+`[ai] gemini request failed`. `service-availability.test.ts` passes 7/7 on its
+own. It is order-dependent: two earlier single-fork runs in this session
+happened to pass.
 
-It is invisible under `npm test`, which gives each file its own worker, and
-`service-availability.test.ts` passes 7/7 on its own. It only bites in a
-single-process run, and it is order-dependent — two earlier single-fork runs in
-this session happened to pass.
+**Cause not established.** An earlier note in this file blamed
+`process.env` not being restored in `tests/unit/ai-registry.test.ts`. That was
+checked and is **wrong** — that file already restores `process.env` in an
+`afterEach` (line 55). The only other env mutations in the suite are one
+`vi.stubEnv` in `interview-flow.test.ts` and the save/restore in
+`env-required.test.ts`. The more likely candidate is module-mock leakage across
+files (`ai-registry.test.ts` mocks `@google/genai` and calls
+`vi.resetModules()`), but that was **not** confirmed, so it is recorded as a
+hypothesis rather than a diagnosis.
 
-Low priority (the shipped command is unaffected), but worth an `afterEach`
-restore in `ai-registry.test.ts` if the suite is ever run in one process.
+**Deliberately not "fixed".** The suite is green under its supported
+configuration, the implicated test file is already correct, and changing
+working test infrastructure on an unverified theory risks weakening the very
+tests that caught this. Diagnose before changing.
+
+Low priority: `npm test` gives each file its own worker, so this is invisible
+in CI and on a normal machine.
