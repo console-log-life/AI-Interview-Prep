@@ -618,6 +618,12 @@ model InterviewEvaluation {
   missingPoints  String[] @default([])
   feedback       String   @db.Text
   improvedAnswer String?  @db.Text
+  /// Why each rubric dimension scored what it did, as RubricNotes.
+  ///
+  /// The six dimension scores were stored from the start and never shown; a
+  /// number with no justification is a verdict the candidate cannot act on or
+  /// argue with, so the report renders the two together.
+  rubricNotes    Json     @default("{}")
   topic          String?
   createdAt      DateTime @default(now())
 

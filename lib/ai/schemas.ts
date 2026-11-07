@@ -77,6 +77,28 @@ export const evaluationJsonSchema = {
       description:
         "The candidate's own answer rewritten with better structure and wording. Use ONLY facts the candidate stated. Never invent experience, employers, projects or numbers.",
     },
+    rubricNotes: {
+      type: "object",
+      description:
+        "One short sentence per dimension saying why that score, quoting or pointing at what the candidate actually said.",
+      properties: {
+        correctness: { type: "string" },
+        relevance: { type: "string" },
+        clarity: { type: "string" },
+        technicalDepth: { type: "string" },
+        completeness: { type: "string" },
+        structure: { type: "string" },
+      },
+      required: [
+        "correctness",
+        "relevance",
+        "clarity",
+        "technicalDepth",
+        "completeness",
+        "structure",
+      ],
+      additionalProperties: false,
+    },
   },
   required: [
     "score",
@@ -90,6 +112,7 @@ export const evaluationJsonSchema = {
     "missingPoints",
     "feedback",
     "improvedAnswer",
+    "rubricNotes",
   ],
   additionalProperties: false,
 } as const;
@@ -106,6 +129,22 @@ export const evaluationResponseSchema = z.object({
   missingPoints: z.array(z.string().max(300)).max(10).default([]),
   feedback: z.string().max(2000).default(""),
   improvedAnswer: z.string().max(4000).default(""),
+  /**
+   * Every field optional and the whole object defaulted, so a provider that
+   * omits a justification yields a scored answer with an unexplained dimension
+   * rather than a failed evaluation. The report omits a dimension that has no
+   * score at all, which is the case that matters.
+   */
+  rubricNotes: z
+    .object({
+      correctness: z.string().max(400).optional(),
+      relevance: z.string().max(400).optional(),
+      clarity: z.string().max(400).optional(),
+      technicalDepth: z.string().max(400).optional(),
+      completeness: z.string().max(400).optional(),
+      structure: z.string().max(400).optional(),
+    })
+    .default({}),
 });
 
 // --- Interview report -------------------------------------------------------

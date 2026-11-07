@@ -28,6 +28,10 @@ export function makeEvaluation(
   overrides: Partial<AnswerEvaluation> = {},
 ): AnswerEvaluation {
   return {
+    rubricNotes: {
+      correctness: "Fake note: the facts checked out.",
+      clarity: "Fake note: followed on first listen.",
+    },
     score: 7,
     correctness: 7,
     relevance: 8,

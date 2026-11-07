@@ -16,6 +16,7 @@ import { requireUserPage } from "@/lib/auth/session";
 import { getInterviewCommunication } from "@/lib/communication/service";
 import { getInterviewDelivery } from "@/lib/interviews/delivery-service";
 import { parseStoredEvidence } from "@/lib/interviews/report-evidence";
+import { parseRubricNotes } from "@/lib/interviews/rubric";
 import { wordCount } from "@/lib/interviews/speech-metrics";
 import { getInterviewIntelligence } from "@/lib/interviews/report-intelligence";
 import { getInterviewResult } from "@/lib/interviews/service";
@@ -120,6 +121,17 @@ export default async function InterviewResultPage({
             strengths: evaluation.strengths,
             missingPoints: evaluation.missingPoints,
             improvedAnswer: evaluation.improvedAnswer,
+            rubric: {
+              correctness: evaluation.correctness,
+              relevance: evaluation.relevance,
+              clarity: evaluation.clarity,
+              technicalDepth: evaluation.technicalDepth,
+              completeness: evaluation.completeness,
+              structure: evaluation.structure,
+            },
+            // JSONB, so parsed defensively: an older evaluation has `{}` and
+            // renders its scores without justifications.
+            rubricNotes: parseRubricNotes(evaluation.rubricNotes),
           }))}
         />
       )}

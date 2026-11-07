@@ -261,6 +261,10 @@ SCORING
 - A partially correct answer with real gaps scores 4-6.
 - A correct, well-structured answer with depth scores 8-10.
 - Never award a high score without being able to point to specific content.
+- "rubricNotes" carries one short sentence per dimension explaining that
+  dimension's score, pointing at what the candidate actually said. A number on
+  its own is a verdict they cannot act on. Say "not assessed for this question"
+  for a dimension that does not apply rather than inventing a reason.
 
 IMPROVED ANSWER
 Rewrite the candidate's own answer so it is better structured and better worded.

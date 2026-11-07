@@ -338,6 +338,9 @@ export abstract class BaseAIService implements AIService {
       ctx.settings.type === "BEHAVIORAL" || ctx.settings.type === "HR";
 
     return {
+      // One sentence per dimension, straight from the same call that produced
+      // the scores. Shape is already bounded by the zod schema.
+      rubricNotes: raw.rubricNotes,
       score: Math.round(raw.score),
       // Sub-scores that carry no meaning for this round type are stored as
       // null rather than a misleading 0.

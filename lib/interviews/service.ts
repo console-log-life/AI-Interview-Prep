@@ -17,6 +17,7 @@ import {
 } from "@/lib/interview/adaptive";
 import { recordMistakes } from "@/lib/mistakes/service";
 import { resolveReportEvidence } from "@/lib/interviews/report-evidence";
+import { parseRubricNotes } from "@/lib/interviews/rubric";
 import { recordClaimVerification } from "@/lib/resume/claims";
 import { recordSkillObservations } from "@/lib/skills/service";
 import { interviewScoreToSkillScore } from "@/lib/skills/scoring";
@@ -398,6 +399,7 @@ export async function submitAnswer(
       missingPoints: evaluation.missingPoints,
       feedback: evaluation.feedback,
       improvedAnswer: evaluation.improvedAnswer,
+      rubricNotes: evaluation.rubricNotes,
       topic: lastQuestion.topic,
     },
   });
@@ -591,6 +593,7 @@ export async function completeInterview(userId: string, interviewId: string) {
       missingPoints: evaluation.missingPoints,
       feedback: evaluation.feedback,
       improvedAnswer: evaluation.improvedAnswer ?? "",
+      rubricNotes: parseRubricNotes(evaluation.rubricNotes),
     },
   }));
 

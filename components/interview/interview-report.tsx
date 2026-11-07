@@ -22,6 +22,12 @@ import {
   evidenceOfKind,
   type ResolvedEvidence,
 } from "@/lib/interviews/report-evidence";
+import {
+  rubricBand,
+  rubricRows,
+  type RubricNotes,
+  type RubricScores,
+} from "@/lib/interviews/rubric";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +70,76 @@ export type EvaluationRow = {
   strengths: string[];
   missingPoints: string[];
   improvedAnswer: string | null;
+  /**
+   * The six rubric dimensions, which were stored from the start and never
+   * shown. A dimension the evaluator left null is omitted rather than drawn as
+   * a zero — see `lib/interviews/rubric.ts`.
+   */
+  rubric: RubricScores;
+  rubricNotes: RubricNotes;
 };
+
+/**
+ * The rubric for one answer: each dimension, its score, and why.
+ *
+ * The bar is there to make the shape of an answer readable at a glance — a
+ * candidate who is accurate but unclear looks different from one who is
+ * neither. Bands are coarse on purpose; the numbers come from a language
+ * model, and a finer palette would imply a precision they do not have.
+ */
+function RubricBreakdown({
+  scores,
+  notes,
+}: {
+  scores: RubricScores;
+  notes: RubricNotes;
+}) {
+  const rows = rubricRows(scores, notes);
+  if (rows.length === 0) return null;
+
+  const barClass = {
+    strong: "bg-success",
+    mixed: "bg-warning",
+    weak: "bg-destructive",
+  };
+
+  return (
+    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        How this answer scored
+      </h4>
+      <dl className="mt-2 space-y-2.5">
+        {rows.map((row) => (
+          <div key={row.key}>
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-sm font-medium" title={row.hint}>
+                {row.label}
+              </dt>
+              <dd className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                {row.score}/10
+              </dd>
+            </div>
+            <div
+              className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted"
+              role="img"
+              aria-label={`${row.label}: ${row.score} out of 10`}
+            >
+              <div
+                className={`h-full rounded-full ${barClass[rubricBand(row.score)]}`}
+                style={{ width: `${row.score * 10}%` }}
+              />
+            </div>
+            {row.note && (
+              <p className="mt-1 text-xs text-muted-foreground text-pretty">
+                {row.note}
+              </p>
+            )}
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
 
 /**
  * A qualitative section of the report.
@@ -368,6 +443,11 @@ export function InterviewReportView({
                           </p>
                         </div>
                       )}
+
+                      <RubricBreakdown
+                        scores={evaluation.rubric}
+                        notes={evaluation.rubricNotes}
+                      />
 
                       {evaluation.missingPoints.length > 0 && (
                         <div>

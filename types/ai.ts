@@ -79,6 +79,22 @@ export type EvaluateAnswerContext = {
   topic: string;
 };
 
+/**
+ * Why each rubric dimension got the score it did.
+ *
+ * One short sentence each, from the same call that produced the scores. Every
+ * field is optional: a dimension the evaluator did not justify is shown as a
+ * bare number rather than blocking the evaluation.
+ */
+export type RubricNotesPayload = {
+  correctness?: string;
+  relevance?: string;
+  clarity?: string;
+  technicalDepth?: string;
+  completeness?: string;
+  structure?: string;
+};
+
 export type AnswerEvaluation = {
   score: number;
   correctness: number | null;
@@ -91,6 +107,7 @@ export type AnswerEvaluation = {
   missingPoints: string[];
   feedback: string;
   improvedAnswer: string;
+  rubricNotes: RubricNotesPayload;
 };
 
 export type EvaluatedTurn = {
