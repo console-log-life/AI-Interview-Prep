@@ -164,7 +164,16 @@ Session 2026-10-19 (upgrade). Restore point: tag `demo-stable` = `293c9ee`.
 Every line below was checked **against the code**, not against the README or
 earlier notes in this file. Verdicts cite the file that decides them.
 
-**Totals: 12 DONE · 6 PARTIAL · 0 MISSING · 1 not verifiable here.**
+**Totals: 13 DONE · 5 PARTIAL · 0 MISSING · 1 not verifiable here.**
+
+> **Audit correction (made during implementation).** Line 8 was first recorded
+> as PARTIAL on the claim that contradiction detection was within-answer only.
+> That was wrong: I had found `CONTRADICTION_PAIRS` (a *second*, intra-answer
+> signal) and stopped looking. `findContradiction` in `memory.ts` does the
+> cross-turn comparison, is wired into `turn-decision.ts`, and is tested. The
+> line is DONE and was struck from the queue before any code was written —
+> implementing it would have duplicated a working feature, which is exactly
+> what this session is not for. Totals above are the corrected ones.
 
 ## Candidate context
 
@@ -182,7 +191,7 @@ earlier notes in this file. Verdicts cite the file that decides them.
 | 5 | Types: technical / behavioral / system design / HR | **DONE** | `enum InterviewType` — HR, TECHNICAL, BEHAVIORAL, CODING, MIXED, SYSTEM_DESIGN. |
 | 6 | Personas change tone **and follow-up pressure** | **PARTIAL** | Tone: `PERSONA_INSTRUCTIONS` (`lib/ai/prompts.ts:39`), `LIVE_PERSONA` (`lib/ai/live/prompts.ts:17`). Timing pressure: `PERSONA_TUNING` (silenceDurationMs 3000→2200, `interruptsCandidate`). **Missing:** `grep persona` over `orchestrator.ts`, `turn-decision.ts`, `adaptive.ts` returns **zero hits**. The controller takes identical decisions for every persona, so follow-up *pressure* is prompt decoration rather than behaviour — a tough persona does not probe more times before moving on. |
 | 7 | Rubric per answer, each dimension with a written justification | **PARTIAL** | Six dimensions scored 0-10 on `InterviewEvaluation`: correctness, relevance, clarity, technicalDepth, completeness, structure. **Missing:** one `feedback` string covers the whole answer. No per-dimension justification, so a 4/10 on clarity is unexplained. |
-| 8 | Adaptive moves (6 of them) | **PARTIAL (5 of 6)** | `deriveIntent` in `lib/ai/live/understanding.ts` + `turn-decision.ts`: vague → `ASK_FOR_EXAMPLE` ✓; unsupported claim → `CHALLENGE_UNSUPPORTED_CLAIM` ✓; strong → `SUFFICIENT` + difficulty move ✓; weak → `SIMPLIFY` + mistake recorded ✓; repeat/clarify → `REPEAT_QUESTION`/`CLARIFY_QUESTION`, deliberately unscored ✓. **Missing:** "contradiction **with an earlier answer**". `CONTRADICTION_PAIRS` (line 141) tests regex pairs *inside a single answer only*. `memory.statements` already stores everything needed to do it across turns — `{turn, atMs, subject, stance: USED\|NOT_USED\|MENTIONED, quote}` — but nothing compares a new answer against it. |
+| 8 | Adaptive moves (6 of them) | **DONE** (corrected) | `deriveIntent` in `lib/ai/live/understanding.ts` + `turn-decision.ts`: vague → `ASK_FOR_EXAMPLE` ✓; unsupported claim → `CHALLENGE_UNSUPPORTED_CLAIM` ✓; strong → `SUFFICIENT` + difficulty move ✓; weak → `SIMPLIFY` + mistake recorded ✓; repeat/clarify → `REPEAT_QUESTION`/`CLARIFY_QUESTION`, deliberately unscored ✓; **cross-turn contradiction ✓** — `findContradiction` (`memory.ts:156`) groups statements by subject, requires `used.turn !== notUsed.turn`, and `clarificationFor` quotes both verbatim; `turn-decision.ts:164` acts on it with `RESOLVE_CONTRADICTION` and dedupes via `clarifiedSubjects`. Covered by `turn-decision-flow.test.ts:137` (turn 1 "never used Redis" → turn 3 "implemented Redis caching" → `reason: CONTRADICTION`). |
 
 ## Voice
 
@@ -232,10 +241,21 @@ closest any item comes to the voice path.
 | Rank | Item | Spec # | Why here | Risk |
 |---|---|---|---|---|
 | 1 | Evidence citations for report strengths/weaknesses | 12 | The report is the demo payoff; a weakness you can trace to your own words is the single most convincing screen | Low — additive JSON column + prompt field + UI; index validated against real turn count, dropped if out of range |
-| 2 | Cross-turn contradiction detection | 8 | "It caught me contradicting myself" is the most memorable moment an interviewer can produce; `memory.statements` already holds the data | Low-moderate — pure logic in `memory.ts`/`understanding.ts`, unit-testable, no client change |
+| ~~2~~ | ~~Cross-turn contradiction detection~~ | 8 | **Struck after re-inspection — already works.** `findContradiction` + `turn-decision.ts:164`, tested in `turn-decision-flow.test.ts:137` | n/a |
 | 3 | Per-dimension rubric justification | 7 | Visible in the per-question breakdown; turns six bare numbers into six explained ones | Low — additive JSON column + prompt field |
 | 4 | Persona-driven follow-up pressure | 6 | Makes persona a real choice rather than a label; needs two interviews to notice, so below the above | Moderate — controller behaviour; gated so default persona is unchanged |
 | 5 | JD seniority normalised to the app scale | 2 | Small but unlocks an honest "JD wants SENIOR, you are MID" line | Low — one derived field |
 | 6 | Résumé claim grounding check | 1 | Mostly invisible, but it is the difference between an honesty *instruction* and an honesty *guarantee* | Low — pure function at the extraction boundary |
 
 Stop rule per item: 3 failed attempts → mark blocked, revert, move on.
+
+## Queue progress
+
+| Rank | Item | Status | Result |
+|---|---|---|---|
+| 1 | Report evidence citations | **done** | New `lib/interviews/report-evidence.ts` resolver + JSONB column + migration `20261019120000_report_evidence`; AI emits `questionIndex` per point, validated against real turns and dropped if untrustworthy; UI falls back to the plain list for older reports. 31 tests. Suite 1223 PASS |
+| 2 | Cross-turn contradiction | **struck** | Not a gap — already implemented and tested. See the audit correction above. No code written. |
+| 3 | Per-dimension rubric justification | todo | |
+| 4 | Persona follow-up pressure | todo | |
+| 5 | JD seniority normalisation | todo | |
+| 6 | Résumé claim grounding check | todo | |
