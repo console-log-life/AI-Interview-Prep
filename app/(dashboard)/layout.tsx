@@ -20,9 +20,15 @@ export default async function DashboardLayout({
         <AppHeader user={user} />
         <main
           id="main-content"
-          className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+          className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-10"
         >
-          <div className="mx-auto w-full max-w-6xl space-y-6 lg:space-y-8">
+          {/*
+            Wider and more generously spaced than before. The old 6xl width
+            with a 24px rhythm packed cards tightly enough that sections ran
+            together; 7xl with a 32px gap lets each card read as its own
+            object.
+          */}
+          <div className="mx-auto w-full max-w-7xl space-y-6 lg:space-y-8">
             {children}
           </div>
         </main>

@@ -60,7 +60,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+    // Matches --background in the dark palette, so the browser chrome does
+    // not sit a different colour against the page.
+    { media: "(prefers-color-scheme: dark)", color: "#0e0b17" },
   ],
 };
 
@@ -69,6 +71,22 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/*
+          Applies the saved theme before first paint.
+
+          Without this a dark-mode user sees a white flash on every navigation
+          that reloads the document, because React cannot run early enough to
+          set the class. It is deliberately tiny and dependency-free, and it
+          mirrors exactly what `ThemeToggle` writes: a `preppilot:theme` key of
+          "light" or "dark", or nothing at all for "follow the system".
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("preppilot:theme");var d=t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.classList.add("dark");}document.documentElement.style.colorScheme=d?"dark":"light";}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} font-sans`}
       >

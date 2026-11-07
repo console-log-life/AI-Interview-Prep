@@ -48,14 +48,14 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     <aside
       data-collapsed={collapsed}
       className={cn(
-        "hidden shrink-0 flex-col border-r bg-muted/20 transition-[width] duration-200 lg:flex",
-        collapsed ? "w-[68px]" : "w-64",
+        "hidden shrink-0 flex-col border-r bg-card transition-[width] duration-200 lg:flex",
+        collapsed ? "w-[76px]" : "w-[260px]",
       )}
     >
       <div
         className={cn(
-          "flex h-16 items-center border-b",
-          collapsed ? "justify-center px-2" : "px-6",
+          "flex h-16 items-center",
+          collapsed ? "justify-center px-2" : "px-5",
         )}
       >
         {collapsed ? (
@@ -67,13 +67,13 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
       <nav
         aria-label="Primary"
-        className="flex-1 overflow-y-auto scrollbar-thin px-2 py-4"
+        className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2"
       >
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           {sections.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <h2 className="eyebrow px-3 pb-2">{section.title}</h2>
+                <h2 className="eyebrow px-3 pb-1.5">{section.title}</h2>
               )}
               {collapsed && <div className="mx-2 mb-2 border-t" aria-hidden />}
               <ul className="space-y-0.5">
@@ -92,13 +92,13 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
         </div>
       </nav>
 
-      <div className={cn("border-t p-2", collapsed && "flex justify-center")}>
+      <div className={cn("border-t p-3", collapsed && "flex justify-center")}>
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "sm"}
           onClick={toggle}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(!collapsed && "w-full justify-start")}
+          className={cn("rounded-xl", !collapsed && "w-full justify-start")}
         >
           {collapsed ? (
             <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
@@ -136,22 +136,22 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group relative flex items-center rounded-md text-sm font-medium transition-colors",
+        "group relative flex items-center rounded-xl text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        collapsed ? "h-10 w-full justify-center" : "gap-3 px-3 py-2",
+        collapsed ? "h-11 w-full justify-center" : "gap-3 px-3 py-2.5",
         active
-          ? "bg-brand/10 text-brand"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+          ? "bg-primary/10 font-semibold text-primary"
+          : "font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground",
       )}
     >
       {/* Active indicator rail — reads at a glance without relying on colour. */}
       {active && (
         <span
           aria-hidden="true"
-          className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-brand"
+          className="absolute inset-y-2 -left-1 w-1 rounded-full bg-primary"
         />
       )}
-      <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
       {collapsed ? (
         <span className="sr-only">{item.label}</span>
       ) : (
@@ -162,8 +162,8 @@ function SidebarLink({
         <span
           role="tooltip"
           className="pointer-events-none absolute left-full z-50 ml-2 hidden
-                     whitespace-nowrap rounded-md border bg-popover px-2 py-1
-                     text-xs font-medium text-popover-foreground shadow-md
+                     whitespace-nowrap rounded-lg border bg-popover px-2.5 py-1.5
+                     text-xs font-medium text-popover-foreground shadow-lg
                      group-hover:block group-focus-visible:block"
         >
           {item.label}

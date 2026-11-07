@@ -9,6 +9,7 @@ import { AppNav } from "@/components/layout/app-nav";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Logo } from "@/components/layout/logo";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md lg:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/70 px-4 backdrop-blur-xl lg:px-6">
         <Button
           variant="ghost"
           size="icon"
@@ -75,8 +76,8 @@ export function AppHeader({ user }: { user: SessionUser }) {
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            className="hidden h-9 w-56 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm
-                       text-muted-foreground transition-colors hover:bg-muted
+            className="hidden h-9 w-56 items-center gap-2 rounded-full border bg-card px-3.5 text-sm
+                       text-muted-foreground shadow-sm transition-colors hover:bg-muted/60
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex xl:w-72"
           >
             <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -93,6 +94,8 @@ export function AppHeader({ user }: { user: SessionUser }) {
           >
             <Search aria-hidden="true" />
           </Button>
+
+          <ThemeToggle />
 
           {isAdmin && (
             <Badge variant="outline" className="hidden sm:inline-flex">
