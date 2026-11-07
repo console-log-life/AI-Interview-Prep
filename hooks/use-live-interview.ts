@@ -315,11 +315,19 @@ export function useLiveInterview({
   /**
    * Posts the delivery measurements.
    *
-   * Guarded by a ref because ending an interview and unmounting the room both
-   * lead here, and a second post would be a redundant round trip on the way
-   * out. A failure is swallowed: the report is still worth showing without
-   * its delivery section, and there is nowhere useful to surface an error at
-   * this point in the flow.
+   * Guarded by a ref because `stop` can be reached more than once (End
+   * interview, then the unmount it triggers), and a second post would be a
+   * redundant round trip on the way out. A failure is swallowed: the report is
+   * still worth showing without its delivery section, and there is nowhere
+   * useful to surface an error at this point in the flow.
+   *
+   * Only `stop` calls this, so a candidate who navigates away mid-interview
+   * keeps their transcript (the periodic flush has it) but loses the delivery
+   * summary. That is deliberate. The unmount cleanup cannot post it: with
+   * `reactStrictMode` on, React runs that cleanup between the development
+   * double-mount, which would send an empty summary and set this very ref --
+   * suppressing the real delivery at the end of the interview. Losing the
+   * metrics for an abandoned session is the cheaper of the two.
    */
   const sendDelivery = useCallback(async () => {
     if (deliverySentRef.current) return;
