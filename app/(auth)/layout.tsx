@@ -19,26 +19,32 @@ export default function AuthLayout({
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Form column */}
       <div className="flex flex-col">
-        <div className="p-6">
+        <div className="p-6 sm:p-8">
           <Logo />
         </div>
         <main
           id="main-content"
           className="flex flex-1 items-center justify-center px-6 pb-12"
         >
-          <div className="w-full max-w-sm">{children}</div>
+          {/* A card, so the form reads as an object on the tinted page rather
+              than as text floating in the middle of it. */}
+          <div className="w-full max-w-md">
+            <div className="surface p-6 shadow-lg sm:p-8">{children}</div>
+          </div>
         </main>
       </div>
 
       {/* Brand column — decorative, hidden on small screens */}
-      <aside className="relative hidden border-l bg-muted/40 lg:flex lg:flex-col lg:justify-center lg:px-14">
+      <aside className="gradient-hero relative hidden border-l bg-muted/30 lg:flex lg:flex-col lg:justify-center lg:px-14">
         <div
-          className="surface-grid pointer-events-none absolute inset-0 opacity-40"
+          className="surface-grid pointer-events-none absolute inset-0 opacity-20"
           aria-hidden="true"
         />
         <div className="relative max-w-md">
-          <h2 className="text-3xl font-semibold tracking-tight text-balance">
-            Practice smarter. Interview better.
+          <h2 className="text-balance text-4xl font-bold leading-tight tracking-tight">
+            Practice smarter.
+            <br />
+            <span className="text-primary">Interview better.</span>
           </h2>
           <p className="mt-4 text-muted-foreground text-pretty">
             One platform for mock interviews, assessments, coding practice and

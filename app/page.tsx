@@ -117,38 +117,52 @@ export default function LandingPage() {
 
       <main id="main-content" className="flex-1">
         {/* ---------------------------------------------------------- Hero */}
-        <section className="relative overflow-hidden border-b">
+        <section className="gradient-hero relative overflow-hidden border-b">
+          {/* The grid stays, far fainter, under the gradient — it gives the
+              wash something to sit on without reading as a spreadsheet. */}
           <div
-            className="surface-grid pointer-events-none absolute inset-0 opacity-[0.35]"
+            className="surface-grid pointer-events-none absolute inset-0 opacity-[0.15]"
             aria-hidden="true"
           />
-          <div className="container relative py-20 md:py-28">
+          <div className="container relative py-24 md:py-32">
             <div className="mx-auto max-w-3xl text-center">
               <span className="brand-chip mb-5">
                 <Sparkles className="h-3 w-3" aria-hidden="true" />
                 Built for campus and early-career hiring
               </span>
 
-              <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl md:text-6xl">
+              <h1 className="text-balance text-[2.5rem] font-bold leading-[1.08] tracking-tight sm:text-6xl md:text-7xl">
                 Prepare smarter.
                 <br className="hidden sm:block" />{" "}
-                <span className="text-brand">Interview with confidence.</span>
+                {/* The one place the gradient is allowed to touch type. */}
+                <span className="bg-gradient-to-br from-primary via-primary to-chart-5 bg-clip-text text-transparent">
+                  Interview with confidence.
+                </span>
               </h1>
 
-              <p className="mx-auto mt-5 max-w-2xl text-pretty text-lg text-muted-foreground">
+              <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
                 An adaptive AI interviewer, a skill ledger that knows what you
                 keep forgetting, and a readiness score that tells you the truth
                 about how prepared you actually are.
               </p>
 
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button asChild size="lg">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gradient-cta h-12 rounded-full px-7 text-base text-white shadow-lg transition-transform hover:scale-[1.02] hover:shadow-xl"
+                >
                   <Link href="/register">
                     Start preparing
                     <ArrowRight aria-hidden="true" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-full border-2 bg-card px-7 text-base"
+                >
                   <Link href="#features">Explore features</Link>
                 </Button>
               </div>
@@ -161,9 +175,9 @@ export default function LandingPage() {
             {/* A real component from the product, rendered with illustrative
                 numbers and labelled as an example — never presented as a
                 specific person's results. */}
-            <div className="mx-auto mt-14 max-w-2xl">
-              <div className="surface-raised overflow-hidden">
-                <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5">
+            <div className="mx-auto mt-16 max-w-2xl">
+              <div className="surface overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
                   <span className="eyebrow">Interview readiness</span>
                   <span className="text-xs text-muted-foreground">Example</span>
                 </div>
@@ -211,7 +225,7 @@ export default function LandingPage() {
                 <div key={stat.label} className="text-center">
                   <dt className="sr-only">{stat.label}</dt>
                   <dd>
-                    <span className="block text-3xl font-semibold tabular-nums">
+                    <span className="block font-display text-4xl font-bold tabular-nums text-foreground">
                       {stat.value}
                     </span>
                     <span className="mt-1 block text-sm text-muted-foreground">
@@ -225,7 +239,7 @@ export default function LandingPage() {
         </section>
 
         {/* ------------------------------------------------------ Features */}
-        <section id="features" className="border-b py-20 md:py-24">
+        <section id="features" className="border-b py-20 md:py-28">
           <div className="container">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-semibold tracking-tight text-balance">
@@ -239,7 +253,10 @@ export default function LandingPage() {
 
             <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature) => (
-                <Card key={feature.title} className="transition-shadow hover:shadow-md">
+                <Card
+                  key={feature.title}
+                  className="rounded-2xl border-border/70 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
+                >
                   <CardHeader>
                     <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                       <feature.icon
@@ -261,10 +278,10 @@ export default function LandingPage() {
         </section>
 
         {/* -------------------------------------------------- How it works */}
-        <section id="how-it-works" className="border-b bg-muted/30 py-20 md:py-24">
+        <section id="how-it-works" className="border-b bg-muted/40 py-20 md:py-28">
           <div className="container">
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-balance">
+              <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 A loop, not a one-off test
               </h2>
               <p className="mt-3 text-muted-foreground text-pretty">
@@ -276,9 +293,12 @@ export default function LandingPage() {
             <ol className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {STEPS.map((item) => (
                 <li key={item.step}>
-                  <Card className="h-full">
+                  <Card className="h-full rounded-2xl border-border/70 bg-card shadow-sm">
                     <CardHeader>
-                      <span className="text-sm font-mono font-semibold text-primary">
+                      <span
+                        className="icon-badge mb-1 font-display text-sm font-bold"
+                        aria-hidden="true"
+                      >
                         {item.step}
                       </span>
                       <CardTitle className="text-base">{item.title}</CardTitle>
@@ -296,7 +316,7 @@ export default function LandingPage() {
         </section>
 
         {/* --------------------------------------------------- Deep modules */}
-        <section id="modules" className="border-b py-20 md:py-24">
+        <section id="modules" className="border-b py-20 md:py-28">
           <div className="container">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-semibold tracking-tight text-balance">
@@ -343,7 +363,7 @@ export default function LandingPage() {
         {/* ------------------------------------------------------- Honesty */}
         <section className="border-b bg-muted/30 py-16">
           <div className="container">
-            <div className="mx-auto flex max-w-3xl flex-col items-start gap-4 rounded-xl border bg-background p-6 sm:flex-row sm:items-center">
+            <div className="mx-auto flex max-w-3xl flex-col items-start gap-4 rounded-2xl border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
               <Gauge className="h-8 w-8 shrink-0 text-primary" aria-hidden="true" />
               <div>
                 <h2 className="text-base font-semibold">
@@ -364,7 +384,7 @@ export default function LandingPage() {
         <section className="py-20 md:py-28">
           <div className="container">
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
                 Your next interview is a practice session away
               </h2>
               <p className="mt-4 text-muted-foreground text-pretty">
@@ -372,13 +392,22 @@ export default function LandingPage() {
                 interview in under five minutes.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button asChild size="lg">
+                <Button
+                  asChild
+                  size="lg"
+                  className="gradient-cta h-12 rounded-full px-7 text-base text-white shadow-lg transition-transform hover:scale-[1.02] hover:shadow-xl"
+                >
                   <Link href="/register">
                     Create your account
                     <ArrowRight aria-hidden="true" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-full border-2 bg-card px-7 text-base"
+                >
                   <Link href="/login">I already have one</Link>
                 </Button>
               </div>

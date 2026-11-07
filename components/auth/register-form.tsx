@@ -84,7 +84,7 @@ export function RegisterForm() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-title font-bold tracking-tight">
           Create your account
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
