@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /register
+
+# Everything behind auth is private practice data and must never be indexed.
+Disallow: /dashboard
+Disallow: /interview
+Disallow: /assessments
+Disallow: /coding
+Disallow: /resume
+Disallow: /job-description
+Disallow: /progress
+Disallow: /profile
+Disallow: /settings
+Disallow: /admin
+Disallow: /api

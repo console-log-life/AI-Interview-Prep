@@ -1,0 +1,1431 @@
+// =============================================================================
+// AI Interview Prep — Prisma schema
+//
+// Design notes (for the viva):
+//  * Everything that is queried, filtered, aggregated or joined is relational.
+//  * JSON is used ONLY for AI-generated payloads whose shape is genuinely
+//    open-ended (evaluation breakdowns, extracted resume sections, JD analysis).
+//    Those payloads are validated with Zod before they are written.
+//  * Every foreign key that is used in a list/filter query has an index.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum ExperienceLevel {
+  FRESHER
+  JUNIOR
+  MID
+  SENIOR
+}
+
+enum QuestionCategory {
+  DSA
+  DBMS
+  OOP
+  OPERATING_SYSTEMS
+  COMPUTER_NETWORKS
+  JAVA
+  PYTHON
+  JAVASCRIPT
+  APTITUDE
+  LOGICAL_REASONING
+  HR
+  BEHAVIORAL
+  SYSTEM_DESIGN
+}
+
+enum QuestionType {
+  MCQ
+  MULTI_SELECT
+  TRUE_FALSE
+  SHORT_ANSWER
+  CODING
+  BEHAVIORAL
+  TECHNICAL
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+  ABANDONED
+}
+
+enum InterviewType {
+  HR
+  TECHNICAL
+  BEHAVIORAL
+  CODING
+  MIXED
+  SYSTEM_DESIGN
+}
+
+enum InterviewerPersona {
+  FRIENDLY
+  PROFESSIONAL
+  STRICT
+  STRESS
+}
+
+enum InterviewStatus {
+  STARTED
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  INTERVIEWER
+  CANDIDATE
+  SYSTEM
+}
+
+enum CodeLanguage {
+  PYTHON
+  JAVA
+  CPP
+  JAVASCRIPT
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  INTERNAL_ERROR
+}
+
+enum ResumeStatus {
+  UPLOADED
+  PROCESSING
+  ANALYZED
+  FAILED
+}
+
+enum RecommendationKind {
+  ASSESSMENT
+  INTERVIEW
+  CODING
+  TOPIC_STUDY
+  RESUME
+  PROFILE
+}
+
+/// Declaration order matters: Prisma orders enums by declaration position, so
+/// `orderBy: { priority: "asc" }` surfaces HIGH-priority items first.
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ActivityKind {
+  ASSESSMENT
+  INTERVIEW
+  CODING
+  RESUME
+  JOB_DESCRIPTION
+}
+
+/// Bloom-style cognitive demand of a question.
+enum CognitiveLevel {
+  RECALL
+  UNDERSTAND
+  APPLY
+  ANALYSE
+}
+
+/// Moderation state for AI-generated question content.
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Auth (Auth.js v5 / NextAuth) — credentials + optional OAuth accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(STUDENT)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  profile             Profile?
+  resumes             Resume[]
+  userSkills          UserSkill[]
+  assessmentAttempts  AssessmentAttempt[]
+  interviews          Interview[]
+  codingSubmissions   CodingSubmission[]
+  jobDescriptions     JobDescription[]
+  recommendations     Recommendation[]
+  userAchievements    UserAchievement[]
+  progressSnapshots   ProgressSnapshot[]
+  topicPerformances   TopicPerformance[]
+  activities          PracticeActivity[]
+  authoredQuestions   Question[]          @relation("QuestionAuthor")
+  authoredAssessments Assessment[]        @relation("AssessmentAuthor")
+
+  // --- V2 -------------------------------------------------------------
+  skillObservations  SkillObservation[]
+  skillProfiles      SkillProfile[]
+  mistakes           Mistake[]
+  roadmaps           Roadmap[]
+  dailyPlans         DailyPlan[]
+  coachConversations CoachConversation[]
+  aiUsageLogs        AIUsageLog[]
+  auditLogs          AuditLog[]
+  reviewItems        ReviewItem[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Profile & skills
+// ---------------------------------------------------------------------------
+
+model Profile {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  headline        String?
+  bio             String?         @db.Text
+  college         String?
+  degree          String?
+  branch          String?
+  graduationYear  Int?
+  cgpa            Float?
+  experienceLevel ExperienceLevel @default(FRESHER)
+  targetRole      String?
+  targetCompanies String[]        @default([])
+  preferredLangs  CodeLanguage[]  @default([])
+  location        String?
+  githubUrl       String?
+  linkedinUrl     String?
+  portfolioUrl    String?
+  phone           String?
+  onboardedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetRole])
+}
+
+model Skill {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  slug      String           @unique
+  category  QuestionCategory
+  createdAt DateTime         @default(now())
+
+  userSkills UserSkill[]
+
+  @@index([category])
+}
+
+model UserSkill {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  /// 0-100 self-declared or resume-derived confidence.
+  level     Int      @default(50)
+  /// "manual" | "resume" | "assessment"
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+}
+
+// ---------------------------------------------------------------------------
+// Resume
+// ---------------------------------------------------------------------------
+
+model Resume {
+  id            String       @id @default(cuid())
+  userId        String
+  fileName      String
+  /// Provider-scoped storage key. The binary NEVER lives in Postgres.
+  storageKey    String
+  mimeType      String
+  sizeBytes     Int
+  status        ResumeStatus @default(UPLOADED)
+  isPrimary     Boolean      @default(false)
+  extractedText String?      @db.Text
+  errorMessage  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis ResumeAnalysis?
+  claims   ResumeClaim[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model ResumeAnalysis {
+  id              String   @id @default(cuid())
+  resumeId        String   @unique
+  fullName        String?
+  email           String?
+  phone           String?
+  summary         String?  @db.Text
+  yearsExperience Float?
+  /// AI-extracted, user-editable structured sections. Shape validated by Zod
+  /// (`resumeAnalysisSchema`) before persistence.
+  education       Json     @default("[]")
+  skills          Json     @default("[]")
+  projects        Json     @default("[]")
+  experience      Json     @default("[]")
+  internships     Json     @default("[]")
+  certifications  Json     @default("[]")
+  achievements    Json     @default("[]")
+  technologies    Json     @default("[]")
+  strengths       Json     @default("[]")
+  gaps            Json     @default("[]")
+  /// True once a human has reviewed/corrected the AI extraction.
+  userVerified    Boolean  @default(false)
+  modelUsed       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Question bank
+// ---------------------------------------------------------------------------
+
+model Question {
+  id             String           @id @default(cuid())
+  text           String           @db.Text
+  category       QuestionCategory
+  topic          String
+  difficulty     Difficulty
+  type           QuestionType
+  /// Reference answer for short-answer / behavioural questions.
+  expectedAnswer String?          @db.Text
+  explanation    String?          @db.Text
+  skillsTested   String[]         @default([])
+  tags           String[]         @default([])
+  points         Int              @default(1)
+  isActive       Boolean          @default(true)
+  isSeed         Boolean          @default(false)
+  authorId       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // --- V2 question-quality metadata ------------------------------------
+  subtopic         String?
+  skillKey         String?
+  estimatedTimeSec Int            @default(60)
+  /// Bloom-style level: RECALL | UNDERSTAND | APPLY | ANALYSE
+  cognitiveLevel   CognitiveLevel @default(UNDERSTAND)
+  /// 0-100 heuristic quality score from the validation pipeline.
+  qualityScore     Int            @default(70)
+  isAiGenerated    Boolean        @default(false)
+  reviewStatus     ReviewStatus   @default(APPROVED)
+  /// Normalised text used for duplicate detection.
+  dedupeHash       String?
+
+  author              User?                @relation("QuestionAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  options             QuestionOption[]
+  assessmentQuestions AssessmentQuestion[]
+  answers             AssessmentAnswer[]
+
+  @@index([category, difficulty])
+  @@index([topic])
+  @@index([type])
+  @@index([isActive])
+  @@index([reviewStatus])
+  @@index([dedupeHash])
+  @@index([skillKey])
+}
+
+model QuestionOption {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String  @db.Text
+  isCorrect  Boolean @default(false)
+  order      Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+// ---------------------------------------------------------------------------
+// Assessments
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id             String           @id @default(cuid())
+  title          String
+  description    String?          @db.Text
+  category       QuestionCategory
+  difficulty     Difficulty
+  durationMin    Int              @default(20)
+  passPercentage Int              @default(60)
+  isPublished    Boolean          @default(true)
+  isSeed         Boolean          @default(false)
+  authorId       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  author    User?                @relation("AssessmentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  questions AssessmentQuestion[]
+  attempts  AssessmentAttempt[]
+
+  @@index([category, difficulty])
+  @@index([isPublished])
+}
+
+model AssessmentQuestion {
+  id           String @id @default(cuid())
+  assessmentId String
+  questionId   String
+  order        Int    @default(0)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionId])
+  @@index([assessmentId])
+  @@index([questionId])
+}
+
+model AssessmentAttempt {
+  id              String        @id @default(cuid())
+  userId          String
+  assessmentId    String
+  status          AttemptStatus @default(IN_PROGRESS)
+  startedAt       DateTime      @default(now())
+  /// Absolute server-side deadline. The client timer is display-only; the
+  /// server always re-checks this value on submit.
+  expiresAt       DateTime
+  submittedAt     DateTime?
+  score           Int           @default(0)
+  maxScore        Int           @default(0)
+  percentage      Float         @default(0)
+  correctCount    Int           @default(0)
+  incorrectCount  Int           @default(0)
+  unansweredCount Int           @default(0)
+  timeSpentSec    Int           @default(0)
+  passed          Boolean       @default(false)
+  /// Per-topic and per-difficulty breakdown computed at submit time.
+  breakdown       Json?
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessment Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answers    AssessmentAnswer[]
+
+  @@index([userId, submittedAt])
+  @@index([assessmentId])
+  @@index([status])
+}
+
+model AssessmentAnswer {
+  id              String   @id @default(cuid())
+  attemptId       String
+  questionId      String
+  /// Selected option ids for MCQ / MULTI_SELECT / TRUE_FALSE.
+  selectedOptions String[] @default([])
+  /// Free text for SHORT_ANSWER.
+  textAnswer      String?  @db.Text
+  isCorrect       Boolean?
+  pointsAwarded   Int      @default(0)
+  markedForReview Boolean  @default(false)
+  timeSpentSec    Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  attempt  AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+// ---------------------------------------------------------------------------
+// AI mock interview
+// ---------------------------------------------------------------------------
+
+model Interview {
+  id               String             @id @default(cuid())
+  userId           String
+  targetRole       String
+  experienceLevel  ExperienceLevel    @default(FRESHER)
+  type             InterviewType      @default(MIXED)
+  persona          InterviewerPersona @default(PROFESSIONAL)
+  difficulty       Difficulty         @default(MEDIUM)
+  durationMin      Int                @default(20)
+  plannedQuestions Int                @default(6)
+  status           InterviewStatus    @default(STARTED)
+  resumeId         String?
+  jobDescriptionId String?
+  startedAt        DateTime           @default(now())
+  /// When the candidate actually joined the live room, set on first grant.
+  ///
+  /// Distinct from `startedAt`, which is when the interview row was created.
+  /// A candidate can configure an interview and join an hour later, or resume
+  /// one from yesterday — anchoring the interview clock on `startedAt` then
+  /// reports hours elapsed against a 20-minute budget.
+  liveStartedAt    DateTime?
+  completedAt      DateTime?
+  lastActivityAt   DateTime           @default(now())
+  errorMessage     String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription?         @relation(fields: [jobDescriptionId], references: [id], onDelete: SetNull)
+  messages       InterviewMessage[]
+  evaluations    InterviewEvaluation[]
+  report         InterviewReport?
+  state          InterviewState?
+  communication  CommunicationAnalysis[]
+  delivery       InterviewDelivery?
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([jobDescriptionId])
+}
+
+model InterviewMessage {
+  id           String      @id @default(cuid())
+  interviewId  String
+  role         MessageRole
+  content      String      @db.Text
+  /// Sequence number — the source of truth for ordering (createdAt can collide).
+  order        Int
+  /// Set on INTERVIEWER messages that are actual interview questions.
+  isQuestion   Boolean     @default(false)
+  isFollowUp   Boolean     @default(false)
+  topic        String?
+  /// Set when this question was generated to probe a specific resume claim.
+  /// It is what lets the grader mark that claim VERIFIED / WEAK afterwards.
+  probeClaimId String?
+  createdAt    DateTime    @default(now())
+
+  interview  Interview            @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  evaluation InterviewEvaluation?
+  probeClaim ResumeClaim?         @relation(fields: [probeClaimId], references: [id], onDelete: SetNull)
+
+  @@unique([interviewId, order])
+  @@index([interviewId])
+  @@index([probeClaimId])
+}
+
+model InterviewEvaluation {
+  id             String   @id @default(cuid())
+  interviewId    String
+  /// The CANDIDATE message this evaluation grades.
+  messageId      String   @unique
+  questionText   String   @db.Text
+  answerText     String   @db.Text
+  score          Int
+  correctness    Int?
+  relevance      Int?
+  clarity        Int?
+  technicalDepth Int?
+  completeness   Int?
+  structure      Int?
+  strengths      String[] @default([])
+  missingPoints  String[] @default([])
+  feedback       String   @db.Text
+  improvedAnswer String?  @db.Text
+  topic          String?
+  createdAt      DateTime @default(now())
+
+  interview     Interview              @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  message       InterviewMessage       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  communication CommunicationAnalysis?
+
+  @@index([interviewId])
+}
+
+/// How an answer was *delivered*, as opposed to whether it was correct.
+///
+/// Separate from `InterviewEvaluation` because it is opt-in and costs an extra
+/// AI call: the candidate asks for coaching on a specific answer rather than
+/// paying for it on every turn. STAR coverage is stored as four columns rather
+/// than JSON so "which answers missed the Result?" is a query, not a scan.
+model CommunicationAnalysis {
+  id                   String   @id @default(cuid())
+  evaluationId         String   @unique
+  interviewId          String
+  /// All 0-10.
+  clarity              Int
+  structure            Int
+  conciseness          Int
+  technicalExplanation Int
+  starSituation        Boolean  @default(false)
+  starTask             Boolean  @default(false)
+  starAction           Boolean  @default(false)
+  starResult           Boolean  @default(false)
+  /// Whether STAR was expected at all — it is meaningless for a pure DSA answer.
+  isBehavioural        Boolean  @default(false)
+  observations         String[] @default([])
+  coaching             String   @db.Text
+  modelUsed            String?
+  createdAt            DateTime @default(now())
+
+  evaluation InterviewEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  interview  Interview           @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+}
+
+model InterviewReport {
+  id                  String   @id @default(cuid())
+  interviewId         String   @unique
+  overallScore        Int
+  technicalScore      Int
+  communicationScore  Int
+  problemSolvingScore Int
+  behavioralScore     Int
+  structureScore      Int
+  summary             String   @db.Text
+  strengths           String[] @default([])
+  weaknesses          String[] @default([])
+  repeatedMistakes    String[] @default([])
+  recommendations     String[] @default([])
+  suggestedTopics     String[] @default([])
+  /// Per-question rollup used by the result charts.
+  questionBreakdown   Json?
+  modelUsed           String?
+  createdAt           DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Coding
+// ---------------------------------------------------------------------------
+
+model CodingProblem {
+  id            String     @id @default(cuid())
+  slug          String     @unique
+  title         String
+  description   String     @db.Text
+  difficulty    Difficulty
+  topic         String
+  tags          String[]   @default([])
+  constraints   String?    @db.Text
+  inputFormat   String?    @db.Text
+  outputFormat  String?    @db.Text
+  /// Per-language starter code, keyed by CodeLanguage.
+  starterCode   Json       @default("{}")
+  timeLimitMs   Int        @default(5000)
+  memoryLimitKb Int        @default(256000)
+  isPublished   Boolean    @default(true)
+  isSeed        Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  testCases   CodingTestCase[]
+  submissions CodingSubmission[]
+
+  @@index([difficulty])
+  @@index([topic])
+  @@index([isPublished])
+}
+
+model CodingTestCase {
+  id          String  @id @default(cuid())
+  problemId   String
+  input       String  @db.Text
+  expected    String  @db.Text
+  /// Sample cases are shown in the UI; hidden cases only run on submit.
+  isSample    Boolean @default(false)
+  order       Int     @default(0)
+  explanation String? @db.Text
+
+  problem CodingProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+}
+
+model CodingSubmission {
+  id            String           @id @default(cuid())
+  userId        String
+  problemId     String
+  language      CodeLanguage
+  code          String           @db.Text
+  status        SubmissionStatus @default(PENDING)
+  passedTests   Int              @default(0)
+  totalTests    Int              @default(0)
+  runtimeMs     Int?
+  memoryKb      Int?
+  stderr        String?          @db.Text
+  compileOutput String?          @db.Text
+  /// Per-test-case results (hidden cases redacted before reaching the client).
+  testResults   Json?
+  isRunOnly     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem CodingProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  review  CodeReview?
+
+  @@index([userId, createdAt])
+  @@index([problemId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Job description analysis
+// ---------------------------------------------------------------------------
+
+model JobDescription {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  company          String?
+  rawText          String   @db.Text
+  /// AI-extracted requirement structure.
+  requiredSkills   Json     @default("[]")
+  preferredSkills  Json     @default("[]")
+  technologies     Json     @default("[]")
+  responsibilities Json     @default("[]")
+  keywords         Json     @default("[]")
+  experienceReq    String?
+  /// Skill-by-skill match between the user profile/resume and this JD.
+  skillMatch       Json     @default("[]")
+  missingSkills    Json     @default("[]")
+  matchScore       Int      @default(0)
+  roadmap          Json     @default("[]")
+  suggestedTopics  String[] @default([])
+  modelUsed        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviews Interview[]
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations, progress, gamification
+// ---------------------------------------------------------------------------
+
+model Recommendation {
+  id           String             @id @default(cuid())
+  userId       String
+  kind         RecommendationKind
+  priority     Priority           @default(MEDIUM)
+  title        String
+  reason       String             @db.Text
+  /// Topic / category the recommendation targets — used for dedupe.
+  topic        String?
+  category     QuestionCategory?
+  /// Deep link into the app (e.g. /assessments?category=DBMS).
+  actionUrl    String?
+  actionLabel  String?
+  /// Observed score that triggered the rule, for transparency in the UI.
+  triggerScore Float?
+  source       String             @default("engine")
+  isDismissed  Boolean            @default(false)
+  isCompleted  Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, topic])
+  @@index([userId, isDismissed])
+}
+
+/// Rolling per-topic accuracy, updated after every scored activity.
+/// This is what the recommendation engine and the weak-area UI read from.
+model TopicPerformance {
+  id              String           @id @default(cuid())
+  userId          String
+  topic           String
+  category        QuestionCategory
+  totalAttempts   Int              @default(0)
+  totalScore      Float            @default(0)
+  /// Rolling average 0-100.
+  averageScore    Float            @default(0)
+  bestScore       Float            @default(0)
+  lastScore       Float            @default(0)
+  lastPracticedAt DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topic])
+  @@index([userId, averageScore])
+}
+
+/// Point-in-time snapshot written after each scored activity, so the progress
+/// charts show real history rather than a recomputed guess.
+model ProgressSnapshot {
+  id                   String   @id @default(cuid())
+  userId               String
+  readinessScore       Int      @default(0)
+  interviewAvg         Float    @default(0)
+  assessmentAvg        Float    @default(0)
+  codingAvg            Float    @default(0)
+  interviewsCompleted  Int      @default(0)
+  assessmentsCompleted Int      @default(0)
+  problemsSolved       Int      @default(0)
+  questionsAnswered    Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/// One row per user per day per activity kind — powers streaks and heatmaps.
+model PracticeActivity {
+  id     String       @id @default(cuid())
+  userId String
+  kind   ActivityKind
+  /// Date at UTC midnight, so a day can be counted exactly once.
+  day    DateTime     @db.Date
+  count  Int          @default(1)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, day])
+  @@index([userId, day])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  description String
+  icon        String   @default("trophy")
+  /// Rule key evaluated by `lib/recommendations/achievements.ts`.
+  metric      String
+  threshold   Int
+  points      Int      @default(10)
+  createdAt   DateTime @default(now())
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+// ===========================================================================
+// V2 — SKILL INTELLIGENCE
+// ===========================================================================
+
+/// A node in the skill dependency graph (DSA → Trees → Balanced trees).
+/// Seeded, not user-created, so `key` is a stable slug the engine can rely on.
+model SkillNode {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  label       String
+  category    QuestionCategory
+  parentKey   String?
+  description String?
+  /// Display order within a parent.
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  parent   SkillNode?  @relation("SkillTree", fields: [parentKey], references: [key], onDelete: SetNull)
+  children SkillNode[] @relation("SkillTree")
+
+  observations SkillObservation[]
+
+  @@index([category])
+  @@index([parentKey])
+}
+
+enum EvidenceSource {
+  INTERVIEW
+  ASSESSMENT
+  CODING
+  RESUME
+}
+
+/// One scored data point contributing to a skill.
+///
+/// This is the append-only evidence ledger the whole intelligence layer reads
+/// from. `SkillProfile` is the derived rollup — it can always be rebuilt from
+/// these rows, which makes the scoring algorithm safe to change later.
+model SkillObservation {
+  id         String         @id @default(cuid())
+  userId     String
+  skillKey   String
+  source     EvidenceSource
+  /// Interview / attempt / submission id the observation came from.
+  sourceId   String
+  /// Normalised 0-100.
+  score      Float
+  /// Relative importance (harder questions and interviews weigh more).
+  weight     Float          @default(1)
+  difficulty Difficulty     @default(MEDIUM)
+  observedAt DateTime       @default(now())
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill SkillNode @relation(fields: [skillKey], references: [key], onDelete: Cascade)
+
+  @@index([userId, skillKey, observedAt])
+  @@index([userId, observedAt])
+  @@index([sourceId])
+}
+
+/// Derived per-user, per-skill rollup. Recomputed from SkillObservation.
+model SkillProfile {
+  id              String    @id @default(cuid())
+  userId          String
+  skillKey        String
+  /// Recency-weighted score, 0-100.
+  score           Float     @default(0)
+  /// 0-1. How much evidence stands behind `score`.
+  confidence      Float     @default(0)
+  /// Score change vs the previous half of the observation window.
+  trend           Float     @default(0)
+  observations    Int       @default(0)
+  lastPracticedAt DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillKey])
+  @@index([userId, score])
+}
+
+// ===========================================================================
+// V2 — MISTAKE MEMORY
+// ===========================================================================
+
+enum MistakeStatus {
+  ACTIVE
+  IMPROVING
+  RESOLVED
+}
+
+enum MistakeSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// A recurring conceptual error, deduplicated by `concept` slug per user.
+model Mistake {
+  id          String          @id @default(cuid())
+  userId      String
+  /// Stable slug, e.g. "process-vs-thread". The dedupe key.
+  concept     String
+  label       String
+  skillKey    String?
+  severity    MistakeSeverity @default(MEDIUM)
+  status      MistakeStatus   @default(ACTIVE)
+  frequency   Int             @default(1)
+  firstSeenAt DateTime        @default(now())
+  lastSeenAt  DateTime        @default(now())
+  resolvedAt  DateTime?
+  updatedAt   DateTime        @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrences MistakeOccurrence[]
+  reviewItem  ReviewItem?
+
+  @@unique([userId, concept])
+  @@index([userId, status, frequency])
+}
+
+enum ReviewItemKind {
+  MISTAKE
+  SKILL
+}
+
+enum ReviewQuality {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+/// One thing scheduled for spaced review.
+///
+/// Enrolment is automatic: a repeated mistake or a confirmed weak skill is
+/// exactly what spaced repetition exists for, and asking a candidate to
+/// manually add flashcards for their own weaknesses is a step nobody takes.
+///
+/// `mistakeId` is optional and unique rather than a polymorphic id column, so
+/// deleting a mistake cascades its schedule away and the FK stays real.
+model ReviewItem {
+  id             String         @id @default(cuid())
+  userId         String
+  kind           ReviewItemKind
+  /// Mistake concept slug or skill graph key — stable across regeneration.
+  refKey         String
+  /// Denormalised so the queue renders without a join per row.
+  label          String
+  mistakeId      String?        @unique
+  skillKey       String?
+  /// --- schedule state (see lib/practice/scheduling.ts) ---
+  intervalDays   Int            @default(0)
+  ease           Float          @default(2.5)
+  reviewCount    Int            @default(0)
+  lapses         Int            @default(0)
+  dueAt          DateTime       @default(now())
+  lastReviewedAt DateTime?
+  lastQuality    ReviewQuality?
+  /// Retired once the concept is genuinely learned, kept for history.
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mistake Mistake?    @relation(fields: [mistakeId], references: [id], onDelete: Cascade)
+  reviews ReviewLog[]
+
+  @@unique([userId, kind, refKey])
+  @@index([userId, isActive, dueAt])
+}
+
+/// Append-only record of every graded review.
+///
+/// The schedule on `ReviewItem` is a running state; this is the evidence
+/// behind it, so "am I actually getting better at this?" is answerable.
+model ReviewLog {
+  id           String        @id @default(cuid())
+  reviewItemId String
+  quality      ReviewQuality
+  /// Interval that was applied as a result, in days.
+  intervalDays Int
+  ease         Float
+  createdAt    DateTime      @default(now())
+
+  reviewItem ReviewItem @relation(fields: [reviewItemId], references: [id], onDelete: Cascade)
+
+  @@index([reviewItemId, createdAt])
+}
+
+model MistakeOccurrence {
+  id        String         @id @default(cuid())
+  mistakeId String
+  source    EvidenceSource
+  sourceId  String
+  /// What the candidate actually got wrong, in one sentence.
+  detail    String         @db.Text
+  createdAt DateTime       @default(now())
+
+  mistake Mistake @relation(fields: [mistakeId], references: [id], onDelete: Cascade)
+
+  @@index([mistakeId, createdAt])
+}
+
+// ===========================================================================
+// V2 — ADAPTIVE INTERVIEW STATE
+// ===========================================================================
+
+/// The interviewer's working memory for one interview.
+///
+/// Kept in its own row (not on Interview) because it is written on every turn
+/// while Interview itself is near-immutable after creation.
+model InterviewState {
+  id                String     @id @default(cuid())
+  interviewId       String     @unique
+  currentDifficulty Difficulty @default(MEDIUM)
+  /// Consecutive follow-ups on the current thread. Bounded to stop loops.
+  followUpDepth     Int        @default(0)
+  turnCount         Int        @default(0)
+  coveredTopics     String[]   @default([])
+  masteredTopics    String[]   @default([])
+  strugglingTopics  String[]   @default([])
+  /// Rolling 0-100 estimate of candidate ability this session.
+  skillEstimate     Float      @default(50)
+  /// 0-1 confidence in `skillEstimate`.
+  confidence        Float      @default(0)
+  /// Consecutive strong / weak answers — drives difficulty changes.
+  streakStrong      Int        @default(0)
+  streakWeak        Int        @default(0)
+  /// Resume claims and JD requirements still to probe.
+  pendingProbes     String[]   @default([])
+  updatedAt         DateTime   @updatedAt
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+/// Delivery measurements for a live (voice + video) interview.
+///
+/// Separate from InterviewReport because these are *measurements*, not model
+/// output: they are computed in the browser from the candidate's own frames and
+/// turn timings and survive even when report generation fails. Nullable columns
+/// mean "not measurable", never "zero" — a browser without face detection
+/// stores nulls, and the UI is required to say so rather than render a gap as
+/// a bad score.
+///
+/// No audio or video is stored. Only these derived numbers.
+model InterviewDelivery {
+  id          String @id @default(cuid())
+  interviewId String @unique
+
+  /// FULL | FRAME_ONLY | UNAVAILABLE — what the browser could actually measure.
+  visualCapability      String   @default("UNAVAILABLE")
+  visualSamples         Int      @default(0)
+  visualDurationMs      Int      @default(0)
+  faceVisibleRatio      Float?
+  cameraEngagementRatio Float?
+  engagementBand        String?
+  framingBand           String?
+  lightingBand          String?
+  stabilityBand         String?
+  visualObservations    String[] @default([])
+  visualLimitations     String[] @default([])
+
+  speakingTurns      Int      @default(0)
+  spokenWords        Int      @default(0)
+  totalSpeakingMs    Int      @default(0)
+  wordsPerMinute     Int?
+  paceBand           String?
+  /// [{ term, count }] — filler and hedge phrases found in the transcript.
+  fillers            Json     @default("[]")
+  fillersPerHundred  Float?
+  longPauses         Int      @default(0)
+  meanAnswerWords    Int?
+  shortAnswers       Int      @default(0)
+  selfCorrections    Int      @default(0)
+  paceEarlyWpm       Int?
+  paceLateWpm        Int?
+  speechObservations String[] @default([])
+  speechLimitations  String[] @default([])
+
+  /// Graded exchanges from the live interview, as EvidenceRecord[].
+  ///
+  /// Stored so the report can quote what was actually asked and answered
+  /// rather than asserting a conclusion the transcript cannot support. Each
+  /// entry carries the verbatim question, the verbatim answer, and the
+  /// observations derived from them — deliberately no score.
+  evidence      Json     @default("[]")
+
+  /// Times the candidate spoke over the interviewer.
+  interruptions Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================================================
+// V2 — RESUME CLAIM VERIFICATION
+// ===========================================================================
+
+enum ClaimStatus {
+  UNVERIFIED
+  VERIFIED
+  PARTIAL
+  UNCLEAR
+  WEAK
+}
+
+/// An individual verifiable statement extracted from a resume.
+model ResumeClaim {
+  id            String      @id @default(cuid())
+  resumeId      String
+  /// "project" | "experience" | "skill" | "achievement"
+  claimType     String
+  text          String      @db.Text
+  technologies  String[]    @default([])
+  /// Questions the interviewer can use to probe this claim.
+  probes        String[]    @default([])
+  status        ClaimStatus @default(UNVERIFIED)
+  /// Free-text note from the interview that verified (or failed) it.
+  evidence      String?     @db.Text
+  /// 0-100 how well the candidate explained it.
+  understanding Int?
+  verifiedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  resume        Resume             @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  probeMessages InterviewMessage[]
+
+  @@index([resumeId, status])
+}
+
+// ===========================================================================
+// V2 — ROADMAP & DAILY PLAN
+// ===========================================================================
+
+enum TaskKind {
+  ASSESSMENT
+  INTERVIEW
+  CODING
+  STUDY
+  RESUME
+  REVIEW
+}
+
+model Roadmap {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  horizonDays      Int
+  targetRole       String?
+  jobDescriptionId String?
+  summary          String?  @db.Text
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks RoadmapTask[]
+
+  @@index([userId, isActive, createdAt])
+}
+
+model RoadmapTask {
+  id           String    @id @default(cuid())
+  roadmapId    String
+  /// 1-based day within the horizon.
+  day          Int
+  title        String
+  detail       String?   @db.Text
+  kind         TaskKind
+  topic        String?
+  skillKey     String?
+  estimatedMin Int       @default(30)
+  actionUrl    String?
+  isCompleted  Boolean   @default(false)
+  completedAt  DateTime?
+  order        Int       @default(0)
+
+  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@index([roadmapId, day])
+}
+
+/// "Today's preparation plan" — regenerated per day, one row per user per day.
+model DailyPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  day         DateTime @db.Date
+  generatedAt DateTime @default(now())
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks DailyPlanTask[]
+
+  @@unique([userId, day])
+  @@index([userId, day])
+}
+
+model DailyPlanTask {
+  id          String    @id @default(cuid())
+  planId      String
+  title       String
+  detail      String?
+  kind        TaskKind
+  topic       String?
+  skillKey    String?
+  targetCount Int       @default(1)
+  actionUrl   String?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  order       Int       @default(0)
+
+  plan DailyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+// ===========================================================================
+// V2 — AI COACH
+// ===========================================================================
+
+model CoachConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New conversation")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages CoachMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model CoachMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  /// "user" | "assistant"
+  role           String
+  content        String   @db.Text
+  /// Snapshot of the real user data the answer was grounded in — this is what
+  /// makes a coach reply auditable rather than an unverifiable claim.
+  grounding      Json?
+  suggestedTasks Json?
+  createdAt      DateTime @default(now())
+
+  conversation CoachConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ===========================================================================
+// V2 — AI CODE REVIEW
+// ===========================================================================
+
+model CodeReview {
+  id                String   @id @default(cuid())
+  submissionId      String   @unique
+  correctness       Int
+  timeComplexity    String
+  spaceComplexity   String
+  readability       Int
+  maintainability   Int
+  efficiency        Int
+  summary           String   @db.Text
+  issues            Json     @default("[]")
+  edgeCases         Json     @default("[]")
+  optimizationNotes String?  @db.Text
+  /// Only generated on explicit request — never shown automatically.
+  optimizedApproach String?  @db.Text
+  learningPoints    String[] @default([])
+  modelUsed         String?
+  createdAt         DateTime @default(now())
+
+  submission CodingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================================================
+// V2 — OBSERVABILITY & AUDIT
+// ===========================================================================
+
+/// Per-AI-call telemetry. Deliberately stores NO prompt text and NO secrets —
+/// only the metadata needed for cost and reliability dashboards.
+model AIUsageLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  feature       String
+  provider      String
+  model         String
+  latencyMs     Int
+  success       Boolean
+  validationOk  Boolean  @default(true)
+  errorCategory String?
+  inputTokens   Int?
+  outputTokens  Int?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([feature, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Append-only record of sensitive admin actions.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+}

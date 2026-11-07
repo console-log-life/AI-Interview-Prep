@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 20%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 71% 34%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 213 82% 45%;
+    --info-foreground: 0 0% 100%;
+
+    /*
+     * Brand accent.
+     *
+     * Deliberately separate from --primary. Primary stays near-black so that
+     * buttons and filled surfaces read as calm and typographic; the brand
+     * indigo is reserved for moments that are genuinely about the product's
+     * intelligence — AI surfaces, the readiness ring, active navigation.
+     * Using it everywhere would make it mean nothing.
+     */
+    --brand: 243 62% 52%;
+    --brand-foreground: 0 0% 100%;
+    --brand-subtle: 243 100% 97%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 243 62% 52%;
+
+    --chart-1: 243 62% 55%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 32 95% 50%;
+    --chart-4: 262 60% 55%;
+    --chart-5: 340 65% 52%;
+
+    --radius: 0.625rem;
+
+    /*
+     * Elevation. Three steps only — a scale with eight steps ends up used at
+     * random. Kept low-alpha so cards separate from the page without the
+     * heavy drop-shadow look.
+     */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md:
+      0 1px 3px 0 hsl(222 47% 11% / 0.07), 0 1px 2px -1px hsl(222 47% 11% / 0.04);
+    --shadow-lg:
+      0 8px 24px -6px hsl(222 47% 11% / 0.12), 0 2px 6px -2px hsl(222 47% 11% / 0.06);
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 44% 11%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 44% 11%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 90% 50%;
+    --warning-foreground: 222 47% 11%;
+
+    --info: 213 80% 62%;
+    --info-foreground: 222 47% 11%;
+
+    /* Lifted and desaturated so it stays legible on a dark surface. */
+    --brand: 243 82% 72%;
+    --brand-foreground: 222 47% 11%;
+    --brand-subtle: 243 40% 18%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 243 82% 72%;
+
+    /* Shadows carry almost no weight on dark backgrounds; borders do the work. */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-lg:
+      0 8px 24px -6px hsl(0 0% 0% / 0.5), 0 2px 6px -2px hsl(0 0% 0% / 0.35);
+
+    --chart-1: 243 82% 72%;
+    --chart-2: 173 58% 45%;
+    --chart-3: 32 95% 58%;
+    --chart-4: 262 60% 65%;
+    --chart-5: 340 65% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Visible, consistent focus for keyboard users everywhere. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Respect the OS "reduce motion" setting. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Skip link — first tab stop on every page. */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100]
+           focus:rounded-md focus:bg-primary focus:px-4 focus:py-2
+           focus:text-sm focus:font-medium focus:text-primary-foreground;
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /*
+   * Named surfaces.
+   *
+   * These exist so a "raised panel" is one class rather than four Tailwind
+   * utilities repeated per page and drifting apart over time.
+   */
+  .surface {
+    @apply rounded-lg border bg-card text-card-foreground;
+  }
+  .surface-raised {
+    @apply surface shadow-md;
+  }
+  .surface-muted {
+    @apply rounded-lg border bg-muted/40;
+  }
+
+  /* Section label above a group of controls or stats. */
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Numeric display used by scores and counters. */
+  .metric {
+    @apply text-3xl font-semibold tabular-nums tracking-tight;
+  }
+  .metric-lg {
+    @apply text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl;
+  }
+
+  /* Sparingly-used AI/brand emphasis. */
+  .brand-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-brand/25
+           bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand;
+  }
+
+  /*
+   * Keyboard hint, e.g. the ⌘K badge in the search trigger.
+   * Rendered at a fixed height so it never shifts the control it sits in.
+   */
+  .kbd {
+    @apply inline-flex h-5 select-none items-center gap-0.5 rounded border
+           border-border bg-muted px-1.5 font-mono text-[10px] font-medium
+           text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Thin scrollbars in dense panels (transcript, code editor sidebars). */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 999px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
