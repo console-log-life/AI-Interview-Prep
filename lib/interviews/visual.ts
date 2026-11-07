@@ -55,6 +55,17 @@ export type VisualSample = {
   motion: number;
   /** Null when face detection is unavailable or found nothing this frame. */
   face: FaceObservation | null;
+  /**
+   * Faces detected in this frame.
+   *
+   * Optional, so every sample written before attention feedback existed is
+   * still a valid sample. Absent is not the same as zero — a reader must treat
+   * it as "not counted" and fall back to whether `face` is set, which is what
+   * `summarizeAttention` does.
+   *
+   * Only ever a count. No second face is identified, described or retained.
+   */
+  faceCount?: number;
 };
 
 export type EngagementBand =
