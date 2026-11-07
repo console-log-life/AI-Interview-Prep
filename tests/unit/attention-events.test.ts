@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AttentionEventTracker } from "@/lib/ai/live/attention-events";
-import { attentionTrackingEnabled } from "@/lib/interviews/attention-flag";
+import {
+  ATTENTION_CONSENT_KEY,
+  attentionActive,
+  attentionConsent,
+  attentionTrackingEnabled,
+  setAttentionConsent,
+} from "@/lib/interviews/attention-flag";
 
 /**
  * The feature flag and the non-camera attention signals.
@@ -98,6 +104,79 @@ describe("attentionTrackingEnabled — the flag fails closed", () => {
     for (const value of ["1", "yes", "on", "enabled", "True!", "false"]) {
       expect(attentionTrackingEnabled(value)).toBe(false);
     }
+  });
+});
+
+describe("attentionActive — the flag and the consent together", () => {
+  /** A storage stub, so no real sessionStorage is needed. */
+  function store(initial?: string) {
+    const map = new Map<string, string>();
+    if (initial !== undefined) map.set(ATTENTION_CONSENT_KEY, initial);
+    return {
+      getItem: (key: string) => map.get(key) ?? null,
+      setItem: (key: string, value: string) => void map.set(key, value),
+      read: () => map.get(ATTENTION_CONSENT_KEY) ?? null,
+    };
+  }
+
+  it("is off when the flag is off, even with consent given", () => {
+    // The deployment decides whether the feature exists at all.
+    expect(attentionActive("false", store("true"))).toBe(false);
+    expect(attentionActive(undefined, store("true"))).toBe(false);
+  });
+
+  it("is off when the flag is on but nobody has been asked", () => {
+    // Never asked must read as no. This is the path that keeps a camera
+    // feature from starting because someone did not read a banner.
+    expect(attentionActive("true", store())).toBe(false);
+  });
+
+  it("is off when the flag is on and the candidate declined", () => {
+    expect(attentionActive("true", store("false"))).toBe(false);
+  });
+
+  it("is on only with the flag on and consent given", () => {
+    expect(attentionActive("true", store("true"))).toBe(true);
+  });
+
+  it("is off when storage is unavailable", () => {
+    // A private window or blocked site data. Failing closed is the right
+    // direction for this particular failure.
+    expect(attentionActive("true", null)).toBe(false);
+  });
+
+  it("round-trips a choice", () => {
+    const storage = store();
+    setAttentionConsent(true, storage);
+    expect(attentionConsent(storage)).toBe(true);
+    setAttentionConsent(false, storage);
+    expect(attentionConsent(storage)).toBe(false);
+  });
+
+  it("reports null for an unrecognised stored value", () => {
+    expect(attentionConsent(store("maybe"))).toBeNull();
+  });
+
+  it("does not throw when storage refuses to be written", () => {
+    const hostile = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    };
+    expect(() => setAttentionConsent(true, hostile)).not.toThrow();
+    expect(attentionConsent(hostile)).toBeNull();
+  });
+
+  it("does not throw when storage refuses to be read", () => {
+    const hostile = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => undefined,
+    };
+    expect(attentionConsent(hostile)).toBeNull();
+    expect(attentionActive("true", hostile)).toBe(false);
   });
 });
 

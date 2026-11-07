@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import { AttentionConsent } from "@/components/interview/live/attention-consent";
+import {
+  attentionConsent,
+  attentionTrackingEnabled,
+  setAttentionConsent,
+} from "@/lib/interviews/attention-flag";
 import {
   AlertTriangle,
   Camera,
@@ -76,6 +83,17 @@ export function DeviceCheck({
   plannedQuestions: number;
 }) {
   const router = useRouter();
+  /**
+   * The candidate's attention-tracking choice, null until they pick.
+   *
+   * Read from session storage on mount rather than during render, because
+   * `sessionStorage` is unavailable on the server and reading it in a render
+   * would differ between the server and client passes.
+   */
+  const [attentionChoice, setAttentionChoice] = useState<boolean | null>(null);
+  useEffect(() => {
+    setAttentionChoice(attentionConsent());
+  }, []);
   const {
     state,
     attachPreview,
@@ -348,6 +366,21 @@ export function DeviceCheck({
               </p>
             </CardContent>
           </Card>
+
+          {/*
+            Asked before the interview, and only where the feature is enabled.
+            No pre-ticked box: tracking stays off until the candidate chooses
+            it, and `attentionActive` treats "never asked" as no.
+          */}
+          {attentionTrackingEnabled() && (
+            <AttentionConsent
+              decided={attentionChoice}
+              onDecide={(enabled) => {
+                setAttentionConsent(enabled);
+                setAttentionChoice(enabled);
+              }}
+            />
+          )}
 
           <div className="space-y-3 rounded-lg border bg-card p-4">
             {blocked && (

@@ -13,7 +13,13 @@ import {
 import type { CameraSnapshot } from "@/lib/ai/live/media-state";
 import { cameraStateFrom } from "@/lib/ai/live/media-state";
 import type { InterviewPhase } from "@/lib/ai/live/orchestrator-types";
+import { AttentionEventTracker } from "@/lib/ai/live/attention-events";
 import { VisualSampler } from "@/lib/ai/live/vision";
+import {
+  summarizeAttention,
+  type AttentionSummary,
+} from "@/lib/interviews/attention";
+import { attentionActive } from "@/lib/interviews/attention-flag";
 import { apiPost } from "@/lib/api/client";
 import { summarizeSpeech } from "@/lib/interviews/speech-metrics";
 import { emptyVisualSummary, summarizeVisual } from "@/lib/interviews/visual";
@@ -49,6 +55,14 @@ export function useLiveInterview({
   const flushedRef = useRef(0);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const samplerRef = useRef<VisualSampler | null>(null);
+  /**
+   * Tab, focus and fullscreen counters.
+   *
+   * Constructed only when the flag is on, so with it off this ref stays null
+   * and every path below short-circuits — no listeners attached, no field
+   * posted, nothing for the report to render.
+   */
+  const attentionRef = useRef<AttentionEventTracker | null>(null);
   const deliverySentRef = useRef(false);
   /** Set before the first await in `start`, so two calls cannot both proceed. */
   const startingRef = useRef(false);
@@ -223,6 +237,17 @@ export function useLiveInterview({
     if (clientRef.current || startingRef.current) return;
     startingRef.current = true;
 
+    /**
+     * Attached before anything can fail.
+     *
+     * A tab switch during a failed connect is still a tab switch, and these
+     * listeners cost nothing — three DOM handlers, no sampling loop.
+     */
+    if (attentionActive() && !attentionRef.current) {
+      attentionRef.current = new AttentionEventTracker();
+      attentionRef.current.start();
+    }
+
     const stream = streamRef.current ?? (await requestPermissions());
     if (!stream || stream.getAudioTracks().length === 0) {
       // Nothing was opened, so a retry after granting the microphone must be
@@ -301,6 +326,10 @@ export function useLiveInterview({
 
     samplerRef.current?.stop();
     samplerRef.current = null;
+    // Detached and dropped, so the fresh attempt starts one tracker rather
+    // than counting every later tab switch twice.
+    attentionRef.current?.stop();
+    attentionRef.current = null;
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
     // The next session must be allowed to post its own delivery summary.
@@ -342,9 +371,27 @@ export function useLiveInterview({
           "Your camera was off for this interview, so there is no visual analysis.",
         );
 
+    /**
+     * Aggregates only, and only when the flag is on.
+     *
+     * Computed from the frames the sampler already measured and discarded, so
+     * nothing new is captured for this. `undefined` leaves the field off the
+     * request entirely rather than posting an empty object, which keeps the
+     * stored value at its default and the report silent.
+     */
+    let attention: AttentionSummary | undefined;
+    if (attentionActive()) {
+      attention = summarizeAttention({
+        samples: sampler?.collected ?? [],
+        detectorAvailable: sampler?.hasDetector ?? false,
+        events: attentionRef.current?.counts,
+      });
+    }
+
     try {
       await apiPost(`/api/interviews/${interviewId}/delivery`, {
         visual,
+        attention,
         speech: summarizeSpeech([...turns]),
         // Grounded in the actual exchanges; the report quotes these rather
         // than asserting conclusions the transcript cannot support.
@@ -359,6 +406,9 @@ export function useLiveInterview({
   /** Ends the session, flushes everything and releases every device. */
   const stop = useCallback(async () => {
     samplerRef.current?.stop();
+    // Stopped before the delivery post, so the counts are final when they are
+    // summarised. The tracker keeps them after stopping.
+    attentionRef.current?.stop();
 
     /**
      * Both posts go at once.
@@ -481,6 +531,7 @@ export function useLiveInterview({
   useEffect(() => {
     return () => {
       samplerRef.current?.stop();
+      attentionRef.current?.stop();
       void clientRef.current?.stop();
       for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     };

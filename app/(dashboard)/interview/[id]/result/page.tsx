@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MessageSquareOff } from "lucide-react";
 
 import { CommunicationCoach } from "@/components/interview/communication-coach";
+import { AttentionReport } from "@/components/interview/delivery/attention-report";
 import { DeliveryReport } from "@/components/interview/delivery-report";
 import { InterviewImpact } from "@/components/interview/interview-impact";
 import { InterviewReportView } from "@/components/interview/interview-report";
@@ -139,6 +140,12 @@ export default async function InterviewResultPage({
       {intelligence && interview.report && (
         <InterviewImpact intelligence={intelligence} />
       )}
+
+      {/*
+        Renders nothing when the interview predates attention feedback or ran
+        with it off, rather than an empty section implying something failed.
+      */}
+      {delivery && <AttentionReport attention={delivery.attention} />}
 
       {delivery && (
         <DeliveryReport
