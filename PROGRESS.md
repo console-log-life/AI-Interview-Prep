@@ -155,3 +155,87 @@ tests that caught this. Diagnose before changing.
 
 Low priority: `npm test` gives each file its own worker, so this is invisible
 in CI and on a normal machine.
+
+---
+
+# Upgrade audit
+
+Session 2026-10-19 (upgrade). Restore point: tag `demo-stable` = `293c9ee`.
+Every line below was checked **against the code**, not against the README or
+earlier notes in this file. Verdicts cite the file that decides them.
+
+**Totals: 12 DONE · 6 PARTIAL · 0 MISSING · 1 not verifiable here.**
+
+## Candidate context
+
+| # | Spec line | Verdict | Evidence / what is missing |
+|---|---|---|---|
+| 1 | Resume claims extracted, traceable to source text | **PARTIAL** | `lib/resume/claims.ts`, `ResumeClaim` model (text, technologies, probes, status, evidence). `claimsSystemPrompt` says "Extract only what the resume states. Do not infer, upgrade or embellish." **Missing:** nothing *verifies* the claim text occurs in the résumé — traceability is instructed, not enforced, so a paraphrased or invented claim would be stored and then probed as fact. |
+| 2 | JD → required skills, seniority, responsibilities | **PARTIAL** | `JobDescription` has requiredSkills, preferredSkills, technologies, responsibilities, keywords, skillMatch, missingSkills, matchScore, roadmap. **Missing:** seniority exists only as free text `experienceReq` ("Experience requirement as written"). It is never normalised to the app's own `FRESHER\|JUNIOR\|MID\|SENIOR` scale (`lib/validation/common.ts:44`), so nothing can compare JD seniority to the candidate's level. |
+| 3 | Gap analysis with readiness score + reasons | **DONE** | `lib/analytics/readiness.ts` (score x evidenceFactor, `confidence`, `confidenceScore`, "plain-English reasons, shown verbatim in the UI"), `lib/analytics/job-readiness.ts`, `lib/analytics/job-requirements.ts`. |
+
+## Interview engine
+
+| # | Spec line | Verdict | Evidence / what is missing |
+|---|---|---|---|
+| 4 | Plan from resume + JD + gaps (topics, difficulty, count, type) | **DONE** | `InterviewPlanInput` in `lib/ai/live/orchestrator-types.ts`: resumeClaims, jdSkills, weakSkills, candidateSkills, difficulty, plannedQuestions, interviewType. |
+| 5 | Types: technical / behavioral / system design / HR | **DONE** | `enum InterviewType` — HR, TECHNICAL, BEHAVIORAL, CODING, MIXED, SYSTEM_DESIGN. |
+| 6 | Personas change tone **and follow-up pressure** | **PARTIAL** | Tone: `PERSONA_INSTRUCTIONS` (`lib/ai/prompts.ts:39`), `LIVE_PERSONA` (`lib/ai/live/prompts.ts:17`). Timing pressure: `PERSONA_TUNING` (silenceDurationMs 3000→2200, `interruptsCandidate`). **Missing:** `grep persona` over `orchestrator.ts`, `turn-decision.ts`, `adaptive.ts` returns **zero hits**. The controller takes identical decisions for every persona, so follow-up *pressure* is prompt decoration rather than behaviour — a tough persona does not probe more times before moving on. |
+| 7 | Rubric per answer, each dimension with a written justification | **PARTIAL** | Six dimensions scored 0-10 on `InterviewEvaluation`: correctness, relevance, clarity, technicalDepth, completeness, structure. **Missing:** one `feedback` string covers the whole answer. No per-dimension justification, so a 4/10 on clarity is unexplained. |
+| 8 | Adaptive moves (6 of them) | **PARTIAL (5 of 6)** | `deriveIntent` in `lib/ai/live/understanding.ts` + `turn-decision.ts`: vague → `ASK_FOR_EXAMPLE` ✓; unsupported claim → `CHALLENGE_UNSUPPORTED_CLAIM` ✓; strong → `SUFFICIENT` + difficulty move ✓; weak → `SIMPLIFY` + mistake recorded ✓; repeat/clarify → `REPEAT_QUESTION`/`CLARIFY_QUESTION`, deliberately unscored ✓. **Missing:** "contradiction **with an earlier answer**". `CONTRADICTION_PAIRS` (line 141) tests regex pairs *inside a single answer only*. `memory.statements` already stores everything needed to do it across turns — `{turn, atMs, subject, stance: USED\|NOT_USED\|MENTIONED, quote}` — but nothing compares a new answer against it. |
+
+## Voice
+
+| # | Spec line | Verdict | Evidence |
+|---|---|---|---|
+| 9 | Device check, barge-in, noise rejection, hesitation, stale-event safety, reconnect, watchdogs, retry, text fallback, periodic flush | **DONE** | `components/interview/live/device-check.tsx`; `lib/ai/live/turn-taking.ts` (`BARGE_IN_MIN_SPEECH_MS` rejects coughs); `HESITATION_GRACE_MS`; generation + turnId gating in `client.ts`; `handleDrop` teardown; `CONNECT_TIMEOUT_MS` + `RESPONSE_TIMEOUT_MS`; `retry()` in `use-live-interview.ts`; "Continue in chat"; 15s flush. Hardened in the previous session; 32 tests in `live-client-safety.test.ts`. |
+| 10 | Delivery metrics: wpm, fillers, long pauses, interruptions | **DONE** | `lib/interviews/speech-metrics.ts` → `InterviewDelivery` (wordsPerMinute, fillers, fillersPerHundred, longPauses, interruptions, paceShift). |
+
+## Report
+
+| # | Spec line | Verdict | Evidence / what is missing |
+|---|---|---|---|
+| 11 | Scores only from real turns; zero answers → honest empty state | **DONE** | `completeInterview` returns null at `turns.length === 0`; result page renders `EmptyState` ("Nothing has been invented to fill the gap"). |
+| 12 | Every strength/weakness quotes its question + answer as evidence | **PARTIAL** | Voice interviews get the full `EvidenceList` (verbatim question + answer + observations per graded turn). **Missing:** the report's own `strengths String[]` / `weaknesses String[]` are bare strings with no citation. `reportPrompt` says "Ground every strength and weakness in something the candidate actually said" — instructed, but the data carries no link, so a reader cannot trace a weakness back to the answer that produced it. This is the headline of the report and the most visible gap. |
+| 13 | Per-question breakdown with an improved model answer | **DONE** | `InterviewEvaluation.improvedAnswer` + per-turn strengths/missingPoints, rendered by `interview-report.tsx`. |
+| 14 | Idempotent generation | **DONE** | `createReportOnce` in `lib/interviews/service.ts` — P2002 loser returns the winner's row and skips the follow-on writes. Fixed in the previous session. |
+
+## Progress loop
+
+| # | Spec line | Verdict | Evidence |
+|---|---|---|---|
+| 15 | Skill scores update per interview; trend; recommended next; spaced repetition | **DONE** | `lib/skills/service.ts` (recordSkillObservations, recomputeSkillProfiles, getWeakSkills), `lib/recommendations/engine.ts`, `lib/practice/scheduling.ts` + `queue.ts`, `ProgressSnapshot`. |
+
+## Quality
+
+| # | Spec line | Verdict | Evidence |
+|---|---|---|---|
+| 16 | Loading / error / empty states | **DONE** | `app/(dashboard)/loading.tsx`, `app/(dashboard)/error.tsx`, `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx`, shared `components/shared/empty-state.tsx`. |
+| 17 | Mobile responsive | **NOT VERIFIABLE HERE** | 52 of 148 `.tsx` files use `sm:`/`md:`/`lg:` breakpoints. Correctness needs a browser, which this session does not have. Not counted as DONE or PARTIAL. |
+| 18 | Rate limiting on AI endpoints | **DONE** | 21 routes guard with `rateLimit`, covering every AI path: interviews/message, interviews/live(+probe), job-description/analyze, resume/analyze + claims, roadmap/generate, coach/message, coding run/submit/review, admin questions generate, assessments/practice, communication, voice speak/transcribe. |
+| 19 | README architecture diagram (mermaid) | **DONE** | Added at `293c9ee`; covers the layered request path and the ephemeral-token live voice path. |
+
+---
+
+# Upgrade queue (ranked)
+
+Ranked by demo visibility first, then by risk to existing code.
+
+**Boundary I am holding:** `lib/ai/live/client.ts`, `hooks/use-live-interview.ts`
+and `components/interview/live/**` are the live voice client and were hardened
+last session — **they are not touched by any item below.** Items 2 and 4 modify
+pure modules the client *imports* (`understanding.ts`, `memory.ts`,
+`orchestrator.ts`), which are reducers and pure functions covered by existing
+unit tests, so they are verifiable without a socket. Noted because that is the
+closest any item comes to the voice path.
+
+| Rank | Item | Spec # | Why here | Risk |
+|---|---|---|---|---|
+| 1 | Evidence citations for report strengths/weaknesses | 12 | The report is the demo payoff; a weakness you can trace to your own words is the single most convincing screen | Low — additive JSON column + prompt field + UI; index validated against real turn count, dropped if out of range |
+| 2 | Cross-turn contradiction detection | 8 | "It caught me contradicting myself" is the most memorable moment an interviewer can produce; `memory.statements` already holds the data | Low-moderate — pure logic in `memory.ts`/`understanding.ts`, unit-testable, no client change |
+| 3 | Per-dimension rubric justification | 7 | Visible in the per-question breakdown; turns six bare numbers into six explained ones | Low — additive JSON column + prompt field |
+| 4 | Persona-driven follow-up pressure | 6 | Makes persona a real choice rather than a label; needs two interviews to notice, so below the above | Moderate — controller behaviour; gated so default persona is unchanged |
+| 5 | JD seniority normalised to the app scale | 2 | Small but unlocks an honest "JD wants SENIOR, you are MID" line | Low — one derived field |
+| 6 | Résumé claim grounding check | 1 | Mostly invisible, but it is the difference between an honesty *instruction* and an honesty *guarantee* | Low — pure function at the extraction boundary |
+
+Stop rule per item: 3 failed attempts → mark blocked, revert, move on.
