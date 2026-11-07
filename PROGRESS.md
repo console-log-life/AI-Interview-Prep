@@ -667,3 +667,77 @@ No browser, camera or microphone testing. Everything above is verified by the
 test suite, typecheck, lint, the production build, direct database queries, and
 real provider calls from scripts. The live voice room's audio behaviour is still
 covered only by unit tests with fake socket and audio doubles.
+
+---
+
+# Real-interview feel + attention feedback
+
+## Part A — real interview feel ✅ tagged `demo-safe-3` (`069e691`)
+Already implemented in the prior turn and verified here: transcript no longer
+rendered in the room (still recorded, still flushed, still readable at
+`/interview/[id]`), presence + camera as the stage, one-word state label from
+`presenceFor`, timer, "Q X of Y" from `turnsCompleted` against
+`plannedQuestions`, captions toggle default OFF showing only the interviewer's
+question. Validated: 1324 tests, tsc, lint, build exit 0.
+
+## Part B — attention feedback, behind `NEXT_PUBLIC_ATTENTION_TRACKING`
+
+**Audit first (step 1).** A visual pipeline already existed and was extended,
+not duplicated: `VisualSampler` already sampled at 2 fps to an offscreen canvas,
+discarded frames, reported `hasDetector`, and bounded itself at 5000 samples;
+`visual.ts` already had `MIN_SAMPLES`, `YAW_TOWARD_CAMERA`,
+`cameraEngagementRatio` and an honest `UNAVAILABLE` path. What was genuinely
+missing: multiple faces (detector was capped at 1), tab/blur/fullscreen events,
+time-based smoothing, consent, persistence, and the report section.
+
+**No new dependency.** MediaPipe was permitted but not needed — the existing
+Shape Detection API path supplies landmarks, and adding a wasm face-landmark
+bundle for a signal already available would have cost CPU and download for
+nothing.
+
+| Piece | File |
+|---|---|
+| Aggregation + wording | `lib/interviews/attention.ts` |
+| Flag + consent storage | `lib/interviews/attention-flag.ts` |
+| Tab/blur/fullscreen counters | `lib/ai/live/attention-events.ts` |
+| Face count (gated) | `lib/ai/live/vision.ts` |
+| Consent notice | `components/interview/live/attention-consent.tsx` |
+| Report section | `components/interview/delivery/attention-report.tsx` |
+| Persistence | `prisma/schema.prisma`, migration `20261020120000_attention_feedback`, `lib/interviews/delivery-service.ts`, `app/api/interviews/[id]/delivery/route.ts` |
+| Wiring | `hooks/use-live-interview.ts`, `device-check.tsx`, result page |
+
+### Flag-off equivalence — the four gates
+| Gate | With the flag off |
+|---|---|
+| `vision.ts:114` | detector built with `maxDetectedFaces: 1`, no count recorded — the exact pre-feature argument |
+| `use-live-interview.ts:246` | tracker never constructed; no listeners attached |
+| `use-live-interview.ts:383` | `attention` undefined, so the field is omitted from the POST |
+| `device-check.tsx:375` | no consent UI |
+
+The result page renders `AttentionReport` unconditionally, and it returns null
+because `parseStoredAttention({})` is null. Diff vs `demo-safe-3`: **1672
+insertions, 2 deletions**, both deletions lines replaced by extended versions.
+`lib/ai/live/client.ts` is **not in the diff at all**.
+
+### Deliberate design decisions
+- **Consent gates measurement, not just the flag.** `attentionActive()` needs
+  both, and a null consent reads as no.
+- **`sessionStorage`, not `localStorage`** — consent for this interview should
+  not carry to one sat next month on a shared machine.
+- **Wording is tested, not reviewed.** Over half the aggregation tests assert
+  the phrasing: no output may contain cheat/suspicious/violation/malpractice/
+  disqualify/fail at any value, including the worst-case summary.
+- **`null`, never a zeroed summary**, for "not measured" — a report showing 0%
+  eye contact for an unwatched interview would be invented data.
+- **1.5s smoothing**, erring long: a false "you looked away" is worse than a
+  missed one because the candidate cannot check it.
+
+### Validation
+1388 tests (64 attention) · tsc clean · lint clean · build exit 0, 7/7 static
+pages, BUILD_ID `coDayMbsChy-0BuXjvHhl`. No new dependency. `.env` never
+committed.
+
+### Not done
+No browser, camera or mic testing. The sampling loop, the consent flow and the
+layout are unverified visually; everything above is tests, typecheck, lint,
+build and code inspection.
