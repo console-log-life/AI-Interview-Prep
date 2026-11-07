@@ -33,7 +33,7 @@ external-device detection untouched), never weaken a test.
 | D4 | README "Run locally" + "Demo flow" | done | `README.md`, `.env.example` | Added Demo flow (10 steps + a 10-minute cut + what needs setup first), pre-demo checks, TOC entry. "Run locally" already existed and is accurate. Added missing SEED_DEMO_USERS |
 | D5 | Sweep: console.log noise, TODOs, dead buttons, broken links | done | — (audit, no changes needed) | Clean: 0 console.log (all 20 console.* are prefixed console.error in real error paths); 0 TODO/FIXME; 0 dead buttons or href="#"; every static, dynamic and nav link resolves to a real route |
 | E1 | Final validation: suite + typecheck + lint + build | done (build blocked) | — | 46 files / **1192 tests PASS** (baseline 1132) · `tsc --noEmit` PASS · `eslint . --max-warnings 0` PASS · **`next build` BLOCKED — host out of memory, 5 attempts** |
-| E2 | Re-read whole-session diff for regressions | todo | | |
+| E2 | Re-read whole-session diff for regressions | done | — | Reviewed all 19 files / 1271+ / 43- . AnswerIntent union member-identical (type-safe refactor); completeInterview return type unchanged; connect() wrapping verified; Promise.all failure path cleaned up by the stop() added in B4. No regressions found |
 
 ---
 
@@ -44,7 +44,13 @@ external-device detection untouched), never weaken a test.
 - `VOICE_STT_PROVIDER` / `VOICE_TTS_PROVIDER` absent from `.env` → turn-based
   voice answer + speak-question disabled. (Live interview uses Gemini Live
   directly and does not depend on these.)
-- `ADMIN_EMAILS=""` → admin panel unreachable; 8 admin pages unexercised.
+- `ADMIN_EMAILS=""` → **corrected after checking the code.** This does *not*
+  lock you out of `/admin`. The panel is gated on `user.role === "ADMIN"`
+  (`lib/auth/session.ts:41`), and the seed creates `admin@preppilot.local`
+  with that role, so admin access works out of the box. `ADMIN_EMAILS` only
+  decides the role assigned at registration
+  (`lib/db/queries/users.ts:34`) — set it only if you want a newly registered
+  account to come out as ADMIN.
 
 ### Cannot be done in this session
 - Real browser, camera and microphone testing. Every realtime claim below is
