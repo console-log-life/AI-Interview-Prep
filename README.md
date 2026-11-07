@@ -15,19 +15,20 @@ feedback in one platform. Built as a B.Tech major project.
 4. [Architecture](#architecture)
 5. [Folder structure](#folder-structure)
 6. [Getting started](#getting-started)
-7. [Environment variables](#environment-variables)
-8. [Database setup](#database-setup)
-9. [Authentication setup](#authentication-setup)
-10. [AI setup](#ai-setup)
-11. [Storage setup](#storage-setup)
-12. [Code execution setup](#code-execution-setup)
-13. [Development commands](#development-commands)
-14. [Testing](#testing)
-15. [Deployment](#deployment)
-16. [Security notes](#security-notes)
-17. [AI safety](#ai-safety)
-18. [Known limitations](#known-limitations)
-19. [Future improvements](#future-improvements)
+7. [Demo flow](#demo-flow)
+8. [Environment variables](#environment-variables)
+9. [Database setup](#database-setup)
+10. [Authentication setup](#authentication-setup)
+11. [AI setup](#ai-setup)
+12. [Storage setup](#storage-setup)
+13. [Code execution setup](#code-execution-setup)
+14. [Development commands](#development-commands)
+15. [Testing](#testing)
+16. [Deployment](#deployment)
+17. [Security notes](#security-notes)
+18. [AI safety](#ai-safety)
+19. [Known limitations](#known-limitations)
+20. [Future improvements](#future-improvements)
 
 ---
 
@@ -507,6 +508,51 @@ npm run dev              # http://localhost:3000
 | `student@preppilot.local` | `Password123` | STUDENT |
 
 The seed skips demo users when `NODE_ENV=production` or `SEED_DEMO_USERS=false`.
+
+### Checks before you demo
+
+```bash
+npm run verify        # typecheck + lint + the full test suite
+npm run build         # catches anything only the production build sees
+```
+
+A missing `DATABASE_URL` or `AUTH_SECRET` now stops the server at startup with
+the variable named, rather than failing later inside Prisma or Auth.js.
+
+---
+
+## Demo flow
+
+The order below is the one the product was built around — each step leaves
+behind data the next one reads, so the loop is visible rather than asserted.
+Sign in as `student@preppilot.local`.
+
+| # | Page | What to show |
+|---|---|---|
+| 1 | `/dashboard` | A new account shows **empty states, not sample charts**. Worth saying out loud — it is the design rule the rest of the demo pays off. |
+| 2 | `/profile` | Set a target role. Everything downstream is scoped to it. |
+| 3 | `/resume` | Upload a PDF résumé → extracted profile and verifiable **claims**. |
+| 4 | `/job-description` | Paste a real job ad → required skills and a readiness breakdown against your profile. |
+| 5 | `/interview/new` | Pick **Mock interview** for voice (needs `AI_PROVIDER=gemini`), or **Chat interview** for text. Voice continues to a device check first. |
+| 6 | `/interview/[id]/room` | The live interviewer. Answer one question well and one badly — the follow-up changes because the controller read the answer. |
+| 7 | `/interview/[id]/result` | The report: scores, **evidence** quoting what was actually asked and answered, and delivery metrics (pace, fillers, pauses). |
+| 8 | `/dashboard` | Return here. Readiness, the daily plan and the recommendations have all moved, driven by step 7. |
+| 9 | `/skills` → `/practice` | The weak skill from the interview, and the spaced-practice queue it enrolled. |
+| 10 | `/coach` | Ask "what should I work on?" — the answer is grounded in the steps above and will not invent a strength you have not shown. |
+
+### If you have ten minutes
+
+Steps 1, 5, 6, 7, 8. That is the whole loop: measure → report → the numbers
+move. Everything else is depth.
+
+### What to avoid demoing without setup
+
+- **Coding Run/Submit** needs `CODE_EXECUTION_PROVIDER=judge0` and a
+  `JUDGE0_URL`. Without them the editor loads and the buttons are disabled with
+  a setup notice.
+- **Voice answers in the chat interview** need `VOICE_STT_PROVIDER`. The live
+  voice interview does not — it talks to Gemini directly.
+- **`/admin`** needs your email in `ADMIN_EMAILS`.
 
 ---
 
