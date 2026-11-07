@@ -259,3 +259,85 @@ Stop rule per item: 3 failed attempts → mark blocked, revert, move on.
 | 4 | Persona follow-up pressure | **done** | `PersonaTuning.followUpBudget` (1/2/3/3) + `followUpBudgetFor`; `OrchestratorState.persona` added; orchestrator spends the budget instead of the global constant. PROFESSIONAL unchanged at 2 and pinned by a test. 7 tests. Suite 1255 PASS |
 | 5 | JD seniority normalisation | **done** | New `lib/analytics/seniority.ts` — pure derivation from `experienceReq` + title, so it works on existing rows with no schema or AI change; returns null rather than guessing; compared against `Profile.experienceLevel` and surfaced on the JD page. 38 tests (one caught a real `2024`→24-years mis-parse). Suite 1293 PASS |
 | 6 | Résumé claim grounding check | **done** | New `lib/resume/grounding.ts` gates extraction→storage: a figure absent from the résumé drops the claim (`UNSUPPORTED_NUMBER`), rewording is allowed via 60% token overlap; rejections returned with a reason and logged, not silently filtered. 22 tests. Suite 1315 PASS |
+
+
+---
+
+# Upgrade session — final check
+
+## Validation at HEAD
+
+| Check | Result |
+|---|---|
+| Tests | **50 files / 1315 passed** (session start: 1192) |
+| `tsc --noEmit` | PASS |
+| `eslint . --max-warnings 0` | PASS |
+| `next build` | **PASS — `✓ Compiled successfully in 27.9s`, exit 0, BUILD_ID written** |
+
+### The build finally ran
+It had been blocked by host memory across two sessions and five strategies.
+With ~1.77 GB free it completed on the first attempt, including Next's own
+"Linting and checking validity of types" stage and static generation of 7
+pages. This is the project's first verified production build.
+
+Command that worked here:
+`NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=1400" npx next build`
+
+## Diff review vs `demo-stable`
+
+`git diff demo-stable..HEAD` — 27 files, **1902 insertions, 8 deletions.**
+
+Every one of the 8 deleted lines is a line replaced by an extended version of
+itself, checked individually:
+
+| Deleted | Replaced by |
+|---|---|
+| JD page `Promise.all` (3 lines) | same call plus the profile read |
+| `{items.length === 0 ? (` | the same ternary with an evidence branch |
+| comment above `MAX_FOLLOW_UPS_PER_TOPIC` | a fuller doc comment |
+| the two `< MAX_FOLLOW_UPS_PER_TOPIC` checks | `< followUpLimit(state)` |
+| `const claims = await ai.extractResumeClaims(...)` | `const extracted = ...` plus the grounding filter |
+
+No working behaviour removed, no test deleted or weakened, no dependency added,
+no schema column altered or dropped — both migrations are `ADD COLUMN ... NOT
+NULL DEFAULT`, so every existing row keeps working and renders the pre-upgrade
+view.
+
+## Effect on the README demo flow
+
+| Step | Touched? | Effect |
+|---|---|---|
+| 1, 2, 8, 9, 10 | no | unchanged |
+| 3 `/resume` | yes | claims now filtered by grounding — see the risk below |
+| 4 `/job-description` | yes | one new line comparing the ad's seniority to the candidate's level; absent when the ad does not state one |
+| 5 `/interview/new` | no | unchanged |
+| 6 `room` | behaviour | persona now changes follow-up depth. **PROFESSIONAL (the default) is unchanged at 2** and pinned by a test |
+| 7 `result` | yes | strengths/weaknesses gain a quoted "From answer N"; each answer gains the rubric with a reason per dimension. Both fall back to the old view when the data is absent |
+
+### Demo risk worth knowing about (step 3)
+The claim grounding filter compares a claim against the résumé's
+`extractedText`. If a PDF extracts badly — words run together, broken spacing —
+token overlap can fall below the 0.6 threshold and a *legitimate* claim is
+dropped, so the résumé page would show fewer claims than the document contains.
+Rejections are logged (`[resume] dropped N ungrounded claim(s)`), so this is
+diagnosable rather than silent. Mitigation if it happens during the demo: use a
+text-based PDF rather than a scanned one, and check the server log.
+
+The trade was made deliberately in that direction: dropping a real claim costs
+one probe question, while keeping an invented one gets the candidate asked, out
+loud, how they measured a number they never wrote.
+
+## Not verifiable in this session
+No browser, camera or microphone was used at any point. Everything above is
+verified by the test suite, typecheck, lint, the production build, and code
+inspection. The live voice room's real audio behaviour — barge-in against an
+actual microphone, device switching, echo — remains covered only by unit tests
+with fake socket and audio doubles, and by `docs/live-interview-manual-test-plan.md`,
+which is still unrun.
+
+## Boundary held
+`lib/ai/live/client.ts`, `hooks/use-live-interview.ts` and
+`components/interview/live/**` were **not modified** in this session. The one
+item that came near the voice path (rank 4) changed `orchestrator.ts` and
+`config.ts`, which are pure modules the client imports, and is covered by
+reducer tests that need no socket.
