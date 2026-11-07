@@ -1,5 +1,6 @@
 "use client";
 
+import { attentionActive } from "@/lib/interviews/attention-flag";
 import type { FaceObservation, VisualSample } from "@/lib/interviews/visual";
 
 /**
@@ -72,6 +73,8 @@ export class VisualSampler {
   private previousLuma: Float32Array | null = null;
   private detector: FaceDetectorLike | null = null;
   private detectorAvailable = false;
+  /** True only when attention feedback is active. See `start`. */
+  private countFaces = false;
   /** Guards against overlapping detections when a frame takes too long. */
   private detecting = false;
   private startedAtMs = 0;
@@ -92,16 +95,27 @@ export class VisualSampler {
     if (Detector) {
       try {
         /**
-         * Two, not one.
+         * Two faces, but only when attention feedback is active.
          *
          * One was enough while the only question was "is the candidate on
          * camera". Attention feedback also reports whether more than one face
-         * was visible, and a detector capped at one can never answer that —
-         * it would report a single face in a room full of people. Two is the
+         * was visible, and a detector capped at one can never answer that — it
+         * would report a single face in a room full of people. Two is the
          * cheapest cap that distinguishes "just you" from "not just you",
          * which is the only distinction the report makes.
+         *
+         * Gated rather than raised unconditionally so that with the flag off
+         * the detector is configured exactly as it was before this feature
+         * existed, down to the argument. The outputs would have been identical
+         * either way — `summarizeVisual` never reads the count — but "behaves
+         * exactly as before" is worth being literally true rather than
+         * nearly true.
          */
-        this.detector = new Detector({ fastMode: true, maxDetectedFaces: 2 });
+        this.countFaces = attentionActive();
+        this.detector = new Detector({
+          fastMode: true,
+          maxDetectedFaces: this.countFaces ? 2 : 1,
+        });
         this.detectorAvailable = true;
       } catch {
         this.detector = null;
@@ -199,7 +213,7 @@ export class VisualSampler {
         // A count, and nothing else. No second face is measured, described or
         // retained — the report only ever says whether it was just the
         // candidate in frame.
-        sample.faceCount = faces.length;
+        if (this.countFaces) sample.faceCount = faces.length;
       } catch {
         // A detection failure on one frame is a missing sample, not an outage.
       } finally {
