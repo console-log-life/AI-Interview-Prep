@@ -139,16 +139,19 @@ export function DeviceCheck({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         {/* Preview + join */}
         <div className="space-y-4">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Camera preview</CardTitle>
+              <CardTitle className="type-card-title">Camera preview</CardTitle>
               <CardDescription>
                 Mirrored, so it reads the way a mirror does — the interviewer
                 sees you the other way round.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="overflow-hidden rounded-lg border bg-muted/30">
+              {/* 16:9 and dark, so the preview reads as a video tile rather
+                  than a boxed-off thumbnail, and so it matches the room the
+                  candidate is about to join. */}
+              <div className="relative overflow-hidden rounded-2xl border bg-neutral-900 shadow-sm">
                 {/* One element, hidden rather than unmounted. Swapping it out
                     while the camera is still proving itself would detach the
                     stream mid-check and stop the frame counter — which is the
@@ -158,21 +161,23 @@ export function DeviceCheck({
                   playsInline
                   muted
                   className={cn(
-                    "h-[260px] w-full -scale-x-100 object-cover",
+                    "aspect-video w-full -scale-x-100 object-cover",
                     cameraResult.status !== "READY" && "hidden",
                   )}
                   aria-label="Camera preview"
                 />
                 {cameraResult.status !== "READY" && (
-                  <div className="flex h-[260px] flex-col items-center justify-center gap-2 p-6 text-center">
-                    <CameraOff
-                      className="h-8 w-8 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm font-medium">
+                  <div className="flex aspect-video flex-col items-center justify-center gap-2 p-6 text-center">
+                    <span className="mb-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                      <CameraOff
+                        className="h-6 w-6 text-white/70"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <p className="text-sm font-medium text-white">
                       {state.started ? cameraResult.detail : "Camera not opened yet"}
                     </p>
-                    <p className="max-w-xs text-xs text-muted-foreground">
+                    <p className="max-w-xs text-xs text-white/60">
                       {state.started
                         ? (cameraResult.recovery ??
                           "The interview can run audio-only.")
@@ -183,14 +188,18 @@ export function DeviceCheck({
               </div>
 
               {!state.started ? (
-                <Button className="w-full" onClick={() => void openDevices()}>
+                <Button
+                  size="lg"
+                  className="h-11 w-full rounded-full"
+                  onClick={() => void openDevices()}
+                >
                   <Camera aria-hidden="true" />
                   Start device check
                 </Button>
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="h-11 w-full rounded-full"
                   onClick={() => void openDevices()}
                 >
                   Re-run camera & microphone check
@@ -199,9 +208,9 @@ export function DeviceCheck({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">This interview</CardTitle>
+              <CardTitle className="type-card-title">This interview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1.5 text-sm">
               <Row label="Role" value={targetRole} />
@@ -216,9 +225,9 @@ export function DeviceCheck({
 
         {/* Checks */}
         <div className="space-y-4">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Checks</CardTitle>
+              <CardTitle className="type-card-title">Checks</CardTitle>
               <CardDescription>
                 A tick means we observed it working, not that a device exists.
               </CardDescription>
@@ -336,7 +345,7 @@ export function DeviceCheck({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
@@ -382,7 +391,7 @@ export function DeviceCheck({
             />
           )}
 
-          <div className="space-y-3 rounded-lg border bg-card p-4">
+          <div className="space-y-3 rounded-2xl border bg-card p-5 shadow-sm">
             {blocked && (
               <Alert>
                 <Info aria-hidden="true" />
@@ -400,7 +409,13 @@ export function DeviceCheck({
             )}
             <div className="flex flex-wrap gap-2">
               <Button
-                className="flex-1"
+                size="lg"
+                className={cn(
+                  "h-12 flex-1 rounded-full text-base",
+                  // Only once everything passes does it become the filled
+                  // gradient action; before that it is plainly not ready.
+                  ready && "gradient-cta text-white shadow-lg hover:shadow-xl",
+                )}
                 disabled={!ready}
                 onClick={() => {
                   // Hand the devices over rather than holding two captures.
@@ -414,7 +429,7 @@ export function DeviceCheck({
               >
                 Join interview
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="h-12 rounded-full px-6">
                 <Link href={`/interview/${interviewId}`}>Use chat instead</Link>
               </Button>
             </div>
