@@ -677,6 +677,12 @@ model InterviewReport {
   suggestedTopics     String[] @default([])
   /// Per-question rollup used by the result charts.
   questionBreakdown   Json?
+  /// Cited strengths and weaknesses, as ResolvedEvidence[].
+  ///
+  /// Stored resolved (point + the verbatim question and answer) rather than as
+  /// a bare index, so the report renders from one read and a later edit to a
+  /// transcript cannot silently re-point a citation at different words.
+  evidence            Json     @default("[]")
   modelUsed           String?
   createdAt           DateTime @default(now())
 

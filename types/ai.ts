@@ -106,6 +106,20 @@ export type GenerateReportContext = {
   turns: EvaluatedTurn[];
 };
 
+/**
+ * One strength or weakness, with the answer it came from.
+ *
+ * `questionIndex` is 1-based over the graded turns, matching the numbering the
+ * report prompt shows the model. It is the model's claim about which answer
+ * supports the point and is validated before it is stored or rendered — see
+ * `lib/interviews/report-evidence.ts`.
+ */
+export type ReportEvidence = {
+  kind: "STRENGTH" | "WEAKNESS";
+  point: string;
+  questionIndex: number;
+};
+
 export type InterviewReportPayload = {
   overallScore: number;
   technicalScore: number;
@@ -119,6 +133,13 @@ export type InterviewReportPayload = {
   repeatedMistakes: string[];
   recommendations: string[];
   suggestedTopics: string[];
+  /**
+   * Cited strengths and weaknesses.
+   *
+   * Additive: `strengths` and `weaknesses` above are unchanged, so a report
+   * generated before this existed still renders as a plain list.
+   */
+  evidence: ReportEvidence[];
 };
 
 export type AnalyzeJobDescriptionContext = {

@@ -297,6 +297,11 @@ strengths, and concretely actionable.
 - All category scores are 0-100 and must be consistent with the per-answer
   scores you are given (which are 0-10).
 - Ground every strength and weakness in something the candidate actually said.
+- For EVERY entry in "strengths" and "weaknesses", add an "evidence" entry with
+  the same wording in "point" and the transcript question number it came from
+  in "questionIndex". Cite only question numbers that appear in the transcript;
+  if a point does not trace to one specific answer, leave it out of the list
+  rather than citing a number that does not support it.
 - "repeatedMistakes" means patterns that appeared in more than one answer —
   leave it empty if there were none. Do not manufacture a pattern.
 - "suggestedTopics" must be short topic labels suitable for practice, e.g.

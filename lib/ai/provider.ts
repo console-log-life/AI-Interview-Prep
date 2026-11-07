@@ -369,6 +369,10 @@ export abstract class BaseAIService implements AIService {
     });
 
     return {
+      // Passed through as the model wrote it. Whether an index points at a
+      // real answer is decided in `resolveReportEvidence`, which has the
+      // turns; this layer has no way to know.
+      evidence: raw.evidence,
       overallScore: Math.round(raw.overallScore),
       technicalScore: Math.round(raw.technicalScore),
       communicationScore: Math.round(raw.communicationScore),

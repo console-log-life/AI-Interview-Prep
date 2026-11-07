@@ -125,6 +125,28 @@ export const reportJsonSchema = {
     repeatedMistakes: stringArray("Patterns that appeared more than once."),
     recommendations: stringArray("Concrete next actions for the candidate."),
     suggestedTopics: stringArray("Topic labels to practise next."),
+    evidence: {
+      type: "array",
+      description:
+        "One entry per strength and per weakness, citing the question number it came from.",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["STRENGTH", "WEAKNESS"] },
+          point: {
+            type: "string",
+            description: "The strength or weakness, same wording as in the list above.",
+          },
+          questionIndex: {
+            type: "number",
+            description:
+              "The question number from the transcript that shows this. Must be a real number from the transcript.",
+          },
+        },
+        required: ["kind", "point", "questionIndex"],
+        additionalProperties: false,
+      },
+    },
   },
   required: [
     "overallScore",
@@ -139,6 +161,7 @@ export const reportJsonSchema = {
     "repeatedMistakes",
     "recommendations",
     "suggestedTopics",
+    "evidence",
   ],
   additionalProperties: false,
 } as const;
@@ -156,6 +179,22 @@ export const reportResponseSchema = z.object({
   repeatedMistakes: z.array(z.string().max(300)).max(12).default([]),
   recommendations: z.array(z.string().max(400)).max(12).default([]),
   suggestedTopics: z.array(z.string().max(80)).max(15).default([]),
+  /**
+   * Defaulted rather than required, so a provider that omits it produces a
+   * report with a plain list instead of a failed generation. The index is only
+   * bounded here; whether it points at a real answer is decided against the
+   * actual turns in `resolveReportEvidence`.
+   */
+  evidence: z
+    .array(
+      z.object({
+        kind: z.enum(["STRENGTH", "WEAKNESS"]),
+        point: z.string().max(300),
+        questionIndex: z.coerce.number().int().min(0).max(1000),
+      }),
+    )
+    .max(24)
+    .default([]),
 });
 
 // --- Resume -----------------------------------------------------------------

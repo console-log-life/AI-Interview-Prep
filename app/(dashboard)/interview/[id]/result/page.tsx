@@ -15,6 +15,7 @@ import { aiAvailable } from "@/lib/ai";
 import { requireUserPage } from "@/lib/auth/session";
 import { getInterviewCommunication } from "@/lib/communication/service";
 import { getInterviewDelivery } from "@/lib/interviews/delivery-service";
+import { parseStoredEvidence } from "@/lib/interviews/report-evidence";
 import { wordCount } from "@/lib/interviews/speech-metrics";
 import { getInterviewIntelligence } from "@/lib/interviews/report-intelligence";
 import { getInterviewResult } from "@/lib/interviews/service";
@@ -102,6 +103,9 @@ export default async function InterviewResultPage({
             summary: interview.report.summary,
             strengths: interview.report.strengths,
             weaknesses: interview.report.weaknesses,
+            // JSONB, so it is parsed defensively: an older report has none and
+            // renders the plain list.
+            evidence: parseStoredEvidence(interview.report.evidence),
             repeatedMistakes: interview.report.repeatedMistakes,
             recommendations: interview.report.recommendations,
             suggestedTopics: interview.report.suggestedTopics,

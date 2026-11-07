@@ -95,6 +95,7 @@ export class FakeAIService implements AIService {
       repeatedMistakes: [],
       recommendations: [],
       suggestedTopics: [],
+      evidence: [],
     };
   }
 

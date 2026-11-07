@@ -16,6 +16,7 @@ import {
   type InterviewStateSnapshot,
 } from "@/lib/interview/adaptive";
 import { recordMistakes } from "@/lib/mistakes/service";
+import { resolveReportEvidence } from "@/lib/interviews/report-evidence";
 import { recordClaimVerification } from "@/lib/resume/claims";
 import { recordSkillObservations } from "@/lib/skills/service";
 import { interviewScoreToSkillScore } from "@/lib/skills/scoring";
@@ -651,6 +652,12 @@ export async function completeInterview(userId: string, interviewId: string) {
         score: turn.evaluation.score,
         question: turn.question,
       })),
+      /**
+       * Resolved against the turns that actually happened, so a citation the
+       * model got wrong becomes no citation rather than a quote attached to
+       * the wrong answer.
+       */
+      evidence: resolveReportEvidence(payload.evidence ?? [], turns),
       modelUsed: ai.model,
     },
   });

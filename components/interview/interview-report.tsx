@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 
 import { ScoreRing } from "@/components/shared/score-ring";
+import {
+  evidenceOfKind,
+  type ResolvedEvidence,
+} from "@/lib/interviews/report-evidence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +42,13 @@ export type ReportData = {
   summary: string;
   strengths: string[];
   weaknesses: string[];
+  /**
+   * Cited strengths and weaknesses.
+   *
+   * Empty for a report generated before citations existed, which renders the
+   * plain list below exactly as it always did.
+   */
+  evidence: ResolvedEvidence[];
   repeatedMistakes: string[];
   recommendations: string[];
   suggestedTopics: string[];
@@ -55,18 +66,33 @@ export type EvaluationRow = {
   improvedAnswer: string | null;
 };
 
+/**
+ * A qualitative section of the report.
+ *
+ * When the generator cited the answer a point came from, the point is shown
+ * with that exchange quoted beneath it. That is the difference between a
+ * report asserting "you did not quantify your impact" and one the candidate
+ * can check against their own words — and disagree with.
+ *
+ * `evidence` is optional and falls back to the plain list, because a report
+ * written before citations existed has none, and because a point the generator
+ * could not trace to one specific answer is deliberately left uncited rather
+ * than given a number that does not support it.
+ */
 function ListSection({
   title,
   icon: Icon,
   items,
   tone,
   emptyText,
+  evidence = [],
 }: {
   title: string;
   icon: typeof ThumbsUp;
   items: string[];
   tone: "success" | "warning" | "destructive" | "default";
   emptyText: string;
+  evidence?: ResolvedEvidence[];
 }) {
   const toneClass = {
     success: "text-success",
@@ -81,8 +107,40 @@ function ListSection({
         <Icon className={`h-4 w-4 ${toneClass}`} aria-hidden="true" />
         {title}
       </h3>
-      {items.length === 0 ? (
+      {items.length === 0 && evidence.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">{emptyText}</p>
+      ) : evidence.length > 0 ? (
+        <ul className="mt-2 space-y-3">
+          {evidence.map((entry) => (
+            <li
+              key={`${entry.kind}-${entry.questionIndex}-${entry.point}`}
+              className="rounded-lg border bg-muted/30 p-3"
+            >
+              <p className="flex gap-2 text-sm">
+                <span className={toneClass} aria-hidden="true">
+                  •
+                </span>
+                <span className="text-pretty">{entry.point}</span>
+              </p>
+              <details className="mt-2">
+                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  From answer {entry.questionIndex}
+                  {entry.topic !== "General" && (
+                    <span className="ml-1 font-normal normal-case">
+                      · {entry.topic}
+                    </span>
+                  )}
+                </summary>
+                <p className="mt-2 text-sm font-medium text-pretty">
+                  {entry.question}
+                </p>
+                <blockquote className="mt-1 border-l-2 pl-3 text-sm italic text-muted-foreground text-pretty">
+                  {entry.answer}
+                </blockquote>
+              </details>
+            </li>
+          ))}
+        </ul>
       ) : (
         <ul className="mt-2 space-y-2">
           {items.map((item, index) => (
@@ -192,6 +250,7 @@ export function InterviewReportView({
               title="Strongest areas"
               icon={ThumbsUp}
               items={report.strengths}
+              evidence={evidenceOfKind(report.evidence, "STRENGTH")}
               tone="success"
               emptyText="Nothing stood out as a clear strength in this session."
             />
@@ -199,6 +258,7 @@ export function InterviewReportView({
               title="Weakest areas"
               icon={TrendingDown}
               items={report.weaknesses}
+              evidence={evidenceOfKind(report.evidence, "WEAKNESS")}
               tone="destructive"
               emptyText="No specific weaknesses were flagged."
             />
