@@ -1,5 +1,7 @@
 import type { Difficulty } from "@prisma/client";
 
+import { GENERATED_PROBLEMS } from "./coding-problems-generated";
+
 /**
  * Development seed coding problems.
  *
@@ -29,7 +31,13 @@ export type SeedProblem = {
   testCases: SeedTestCase[];
 };
 
-export const SEED_PROBLEMS: SeedProblem[] = [
+/**
+ * The five problems written by hand before the bank was expanded.
+ *
+ * Kept exactly as they were: the generator never emits these slugs, so
+ * re-seeding updates them in place rather than replacing them.
+ */
+const HAND_WRITTEN_PROBLEMS: SeedProblem[] = [
   {
     slug: "two-sum-indices",
     title: "Two Sum",
@@ -456,4 +464,16 @@ const arr = data.slice(2, 2 + n).map(Number);
       { input: "8 2\n1 2 2 3 3 3 4 5", expected: "2 1 2 1 1 2 2", isSample: false },
     ],
   },
+];
+
+/**
+ * Everything the seed loads.
+ *
+ * The generated problems come from `coding-problems-generated.ts`, where every
+ * expected output was produced by running a reference solution against its
+ * input rather than typed by hand.
+ */
+export const SEED_PROBLEMS: SeedProblem[] = [
+  ...HAND_WRITTEN_PROBLEMS,
+  ...GENERATED_PROBLEMS,
 ];
