@@ -4,130 +4,167 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /*
+     * Soft tinted page, white cards.
+     *
+     * The page is a barely-violet neutral rather than pure white, so that a
+     * white card reads as lifted without needing a heavy shadow to say so.
+     * On a pure-white page every card has to earn its separation with a
+     * border, and the result is the flat admin-panel look this palette exists
+     * to get away from.
+     */
+    --background: 265 40% 98.5%;
+    --foreground: 263 40% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 263 40% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 263 40% 11%;
 
-    --primary: 222 47% 20%;
-    --primary-foreground: 210 40% 98%;
+    /*
+     * One vivid primary, used with intent.
+     *
+     * Deliberately violet: the two products a candidate will have open in
+     * another tab are both blue, and looking like them is worse than looking
+     * like nothing. 262° is far enough from both to be unmistakable while
+     * staying a colour people associate with care rather than alarm.
+     *
+     * This replaces an earlier near-black primary. That decision was sound for
+     * a dense admin tool, but it made every button typographic and the product
+     * read as neutral infrastructure instead of something built for a person
+     * about to sit a difficult interview.
+     */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    /** Tinted fill for badges and selected states. */
+    --primary-subtle: 262 85% 96%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 265 30% 95.5%;
+    --secondary-foreground: 263 40% 15%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 265 28% 95.5%;
+    --muted-foreground: 263 14% 45%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 262 60% 95%;
+    --accent-foreground: 263 40% 15%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-subtle: 0 86% 97%;
 
-    --success: 142 71% 34%;
+    --success: 158 68% 34%;
     --success-foreground: 0 0% 100%;
+    --success-subtle: 158 70% 95%;
 
-    --warning: 32 95% 44%;
+    --warning: 28 92% 45%;
     --warning-foreground: 0 0% 100%;
+    --warning-subtle: 32 95% 95%;
 
-    --info: 213 82% 45%;
+    --info: 199 85% 41%;
     --info-foreground: 0 0% 100%;
+    --info-subtle: 199 90% 95%;
 
     /*
-     * Brand accent.
+     * Kept as an alias of the primary family.
      *
-     * Deliberately separate from --primary. Primary stays near-black so that
-     * buttons and filled surfaces read as calm and typographic; the brand
-     * indigo is reserved for moments that are genuinely about the product's
-     * intelligence — AI surfaces, the readiness ring, active navigation.
-     * Using it everywhere would make it mean nothing.
+     * `--brand` predates this palette, when primary was near-black and a
+     * separate accent was needed for AI surfaces. Now that the primary *is*
+     * the brand colour, the variable stays so existing usages keep working,
+     * pointing at the same hue rather than introducing a second one.
      */
-    --brand: 243 62% 52%;
+    --brand: 262 83% 58%;
     --brand-foreground: 0 0% 100%;
-    --brand-subtle: 243 100% 97%;
+    --brand-subtle: 262 85% 96%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 243 62% 52%;
+    --border: 264 24% 91%;
+    --input: 264 24% 89%;
+    --ring: 262 83% 58%;
 
-    --chart-1: 243 62% 55%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 32 95% 50%;
-    --chart-4: 262 60% 55%;
-    --chart-5: 340 65% 52%;
+    /* Violet first, then hues spaced far enough apart to stay distinct. */
+    --chart-1: 262 83% 60%;
+    --chart-2: 173 64% 40%;
+    --chart-3: 28 92% 55%;
+    --chart-4: 199 85% 50%;
+    --chart-5: 330 72% 58%;
 
-    --radius: 0.625rem;
+    /* Softer than before: 12px rather than 10px, with cards at rounded-2xl. */
+    --radius: 0.75rem;
 
     /*
-     * Elevation. Three steps only — a scale with eight steps ends up used at
-     * random. Kept low-alpha so cards separate from the page without the
-     * heavy drop-shadow look.
+     * Elevation, tinted with the page hue.
+     *
+     * A grey shadow on a violet-tinted page reads as dirt. Tinting it means a
+     * card can sit on a soft shadow and still look clean. Three steps only —
+     * a scale with eight ends up used at random.
      */
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-sm: 0 1px 2px 0 hsl(263 40% 20% / 0.04);
     --shadow-md:
-      0 1px 3px 0 hsl(222 47% 11% / 0.07), 0 1px 2px -1px hsl(222 47% 11% / 0.04);
+      0 4px 12px -2px hsl(263 40% 20% / 0.07), 0 2px 4px -2px hsl(263 40% 20% / 0.05);
     --shadow-lg:
-      0 8px 24px -6px hsl(222 47% 11% / 0.12), 0 2px 6px -2px hsl(222 47% 11% / 0.06);
+      0 18px 40px -12px hsl(263 45% 25% / 0.16), 0 6px 14px -6px hsl(263 40% 20% / 0.08);
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 96%;
+    /* Deep violet-black, not neutral grey, so the primary still belongs. */
+    --background: 264 32% 7%;
+    --foreground: 265 25% 96%;
 
-    --card: 222 44% 11%;
-    --card-foreground: 210 40% 96%;
+    --card: 264 27% 10.5%;
+    --card-foreground: 265 25% 96%;
 
-    --popover: 222 44% 11%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 264 27% 12%;
+    --popover-foreground: 265 25% 96%;
 
-    --primary: 210 40% 96%;
-    --primary-foreground: 222 47% 11%;
+    /* Lifted and slightly desaturated to stay legible on a dark surface. */
+    --primary: 258 92% 70%;
+    --primary-foreground: 264 40% 10%;
+    --primary-subtle: 262 45% 18%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 264 22% 16%;
+    --secondary-foreground: 265 25% 96%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 264 22% 16%;
+    --muted-foreground: 265 15% 66%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 96%;
+    --accent: 262 32% 20%;
+    --accent-foreground: 265 25% 96%;
 
-    --destructive: 0 63% 45%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 264 40% 10%;
+    --destructive-subtle: 0 45% 18%;
 
-    --success: 142 60% 40%;
-    --success-foreground: 0 0% 100%;
+    --success: 158 58% 46%;
+    --success-foreground: 264 40% 10%;
+    --success-subtle: 158 40% 16%;
 
-    --warning: 32 90% 50%;
-    --warning-foreground: 222 47% 11%;
+    --warning: 32 92% 58%;
+    --warning-foreground: 264 40% 10%;
+    --warning-subtle: 32 45% 18%;
 
-    --info: 213 80% 62%;
-    --info-foreground: 222 47% 11%;
+    --info: 199 85% 60%;
+    --info-foreground: 264 40% 10%;
+    --info-subtle: 199 45% 18%;
 
-    /* Lifted and desaturated so it stays legible on a dark surface. */
-    --brand: 243 82% 72%;
-    --brand-foreground: 222 47% 11%;
-    --brand-subtle: 243 40% 18%;
+    --brand: 258 92% 70%;
+    --brand-foreground: 264 40% 10%;
+    --brand-subtle: 262 45% 18%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 243 82% 72%;
+    --border: 264 20% 20%;
+    --input: 264 20% 22%;
+    --ring: 258 92% 70%;
 
-    /* Shadows carry almost no weight on dark backgrounds; borders do the work. */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    /* Shadows carry little weight on dark surfaces; borders do the work. */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
     --shadow-lg:
-      0 8px 24px -6px hsl(0 0% 0% / 0.5), 0 2px 6px -2px hsl(0 0% 0% / 0.35);
+      0 18px 40px -12px hsl(0 0% 0% / 0.6), 0 6px 14px -6px hsl(0 0% 0% / 0.45);
 
-    --chart-1: 243 82% 72%;
-    --chart-2: 173 58% 45%;
-    --chart-3: 32 95% 58%;
-    --chart-4: 262 60% 65%;
-    --chart-5: 340 65% 60%;
+    --chart-1: 258 92% 72%;
+    --chart-2: 173 60% 48%;
+    --chart-3: 32 92% 62%;
+    --chart-4: 199 85% 62%;
+    --chart-5: 330 75% 66%;
   }
 }
 
@@ -143,6 +180,21 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /*
+   * Headings take the display face automatically.
+   *
+   * Set here rather than per component so a new page cannot accidentally ship
+   * with body type in its title — which is the usual way a type pairing stops
+   * being applied consistently.
+   */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui,
+      sans-serif;
+    letter-spacing: -0.02em;
   }
 
   /* Visible, consistent focus for keyboard users everywhere. */
@@ -167,7 +219,7 @@
   /* Skip link — first tab stop on every page. */
   .skip-link {
     @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100]
-           focus:rounded-md focus:bg-primary focus:px-4 focus:py-2
+           focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2
            focus:text-sm focus:font-medium focus:text-primary-foreground;
   }
 
@@ -185,25 +237,23 @@
    * utilities repeated per page and drifting apart over time.
    */
   .surface {
-    @apply rounded-lg border bg-card text-card-foreground;
+    @apply rounded-2xl border bg-card text-card-foreground;
   }
   .surface-raised {
     @apply surface shadow-md;
   }
   .surface-muted {
-    @apply rounded-lg border bg-muted/40;
+    @apply rounded-2xl border bg-muted/50;
   }
 
   /*
    * Typographic roles.
    *
    * A section title should be one class, not a size plus a weight plus a
-   * tracking value remembered correctly in each of forty files. These are the
-   * four roles the app actually has; anything outside them is a one-off and
-   * should look like one.
+   * tracking value remembered correctly in each of forty files.
    */
   .type-page-title {
-    @apply text-title font-semibold text-foreground;
+    @apply text-title font-bold text-foreground;
   }
   .type-section-title {
     @apply text-heading font-semibold text-foreground;
@@ -217,15 +267,15 @@
 
   /* Section label above a group of controls or stats. */
   .eyebrow {
-    @apply text-caption font-medium uppercase tracking-wider text-muted-foreground;
+    @apply text-caption font-semibold uppercase tracking-wider text-muted-foreground;
   }
 
   /* Numeric display used by scores and counters. */
   .metric {
-    @apply text-3xl font-semibold tabular-nums tracking-tight;
+    @apply text-3xl font-bold tabular-nums tracking-tight;
   }
   .metric-lg {
-    @apply text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl;
+    @apply text-4xl font-bold tabular-nums tracking-tight sm:text-5xl;
   }
 
   /* Sparingly-used AI/brand emphasis. */
@@ -239,9 +289,57 @@
    * Rendered at a fixed height so it never shifts the control it sits in.
    */
   .kbd {
-    @apply inline-flex h-5 select-none items-center gap-0.5 rounded border
+    @apply inline-flex h-5 select-none items-center gap-0.5 rounded-md border
            border-border bg-muted px-1.5 font-mono text-[10px] font-medium
            text-muted-foreground;
+  }
+
+  /*
+   * Icon badge: a lucide glyph in a tinted circle.
+   *
+   * One class because this pattern appears on every card header, stat tile and
+   * empty state, and hand-rolling it each time is how six slightly different
+   * circle sizes end up on one page.
+   */
+  .icon-badge {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full
+           bg-primary/10 text-primary;
+  }
+  .icon-badge-lg {
+    @apply inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl
+           bg-primary/10 text-primary;
+  }
+
+  /*
+   * Gradients, restricted on purpose.
+   *
+   * Only the landing hero and the single primary call to action. A gradient
+   * that appears on every surface stops reading as emphasis and starts reading
+   * as decoration, and this product has exactly two places that deserve it.
+   */
+  .gradient-hero {
+    background-image:
+      radial-gradient(60% 60% at 15% 0%, hsl(var(--primary) / 0.16), transparent 70%),
+      radial-gradient(50% 60% at 95% 10%, hsl(var(--chart-5) / 0.12), transparent 70%),
+      radial-gradient(70% 70% at 60% 100%, hsl(var(--chart-2) / 0.1), transparent 70%);
+  }
+
+  .gradient-cta {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--primary)) 0%,
+      hsl(282 76% 56%) 55%,
+      hsl(312 70% 55%) 100%
+    );
+  }
+
+  .dark .gradient-cta {
+    background-image: linear-gradient(
+      135deg,
+      hsl(258 92% 64%) 0%,
+      hsl(282 76% 60%) 55%,
+      hsl(312 70% 58%) 100%
+    );
   }
 }
 

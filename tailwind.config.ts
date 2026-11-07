@@ -12,7 +12,9 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "1.5rem",
+      // Tighter at 360px than the old flat 1.5rem, which ate 48px of a
+      // 360px screen before any content was drawn.
+      padding: { DEFAULT: "1rem", sm: "1.5rem", lg: "2rem" },
       screens: { "2xl": "1360px" },
     },
     extend: {
@@ -25,6 +27,7 @@ const config: Config = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          subtle: "hsl(var(--primary-subtle))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -33,18 +36,26 @@ const config: Config = {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          /** Tinted fill for badges, callouts and icon badges. */
+          subtle: "hsl(var(--destructive-subtle))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          /** Tinted fill for badges, callouts and icon badges. */
+          subtle: "hsl(var(--success-subtle))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          /** Tinted fill for badges, callouts and icon badges. */
+          subtle: "hsl(var(--warning-subtle))",
         },
         info: {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
+          /** Tinted fill for badges, callouts and icon badges. */
+          subtle: "hsl(var(--info-subtle))",
         },
         brand: {
           DEFAULT: "hsl(var(--brand))",
@@ -90,6 +101,13 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: [
+          "var(--font-display)",
+          "var(--font-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       /**

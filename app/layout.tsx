@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Outfit } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
@@ -14,6 +14,25 @@ const inter = Inter({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+/**
+ * Display face for headings.
+ *
+ * Outfit is geometric and a little warmer than Inter, which is what makes a
+ * large page title read as confident rather than as a bigger paragraph. It is
+ * close enough in proportion to Inter that the two do not fight at the sizes
+ * where they meet, and it stays legible down to the 20px section headings —
+ * which ruled out the more characterful grotesques that only work huge.
+ *
+ * Headings opt in through `--font-display`, applied to h1-h3 in globals.css
+ * rather than per component, so a new page cannot ship with body type in its
+ * title.
+ */
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -50,7 +69,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
+      <body
+        className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} font-sans`}
+      >
         {/* First tab stop on every page — lets keyboard users skip the nav. */}
         <a href="#main-content" className="skip-link">
           Skip to main content

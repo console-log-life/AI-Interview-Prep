@@ -807,3 +807,11 @@ Verified in the built CSS: `.eyebrow` compiles to
 until a page uses them, which is expected — they appear as pages migrate.
 
 **No new dependency.** Build passes.
+
+---
+
+# UI redesign (`before-ui` → `ui-v1`)
+
+| # | Item | What changed |
+|---|---|---|
+| 1 | Tokens + fonts | Vivid violet primary (262°) replacing near-black; soft violet-tinted page with white cards; `*-subtle` tints for primary/success/warning/danger/info; violet-tinted 3-step shadows; radius 10px→12px with cards at `rounded-2xl`; **Outfit** display face via `next/font` applied to h1–h3 globally; `.icon-badge`, `.gradient-hero`, `.gradient-cta`; container padding 1rem→2rem responsive instead of a flat 1.5rem that ate 48px of a 360px screen |
