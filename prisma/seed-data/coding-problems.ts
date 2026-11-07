@@ -1,6 +1,7 @@
 import type { Difficulty } from "@prisma/client";
 
 import { GENERATED_PROBLEMS } from "./coding-problems-generated";
+import { EXTRA_TEST_CASES } from "./coding-problems-extra-cases";
 
 /**
  * Development seed coding problems.
@@ -474,6 +475,19 @@ const arr = data.slice(2, 2 + n).map(Number);
  * input rather than typed by hand.
  */
 export const SEED_PROBLEMS: SeedProblem[] = [
-  ...HAND_WRITTEN_PROBLEMS,
+  /**
+   * The hand-written five, topped up to the same depth of coverage.
+   *
+   * Their statements and original cases are untouched; the extra hidden cases
+   * are appended so every problem in the bank has at least eight. Those extras
+   * are generated the same way the rest are -- by running a reference solution
+   * -- so none of them is a typed guess.
+   */
+  ...HAND_WRITTEN_PROBLEMS.map((problem) => {
+    const extra = EXTRA_TEST_CASES[problem.slug];
+    return extra
+      ? { ...problem, testCases: [...problem.testCases, ...extra] }
+      : problem;
+  }),
   ...GENERATED_PROBLEMS,
 ];
