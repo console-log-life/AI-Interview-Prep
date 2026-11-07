@@ -194,9 +194,30 @@
     @apply rounded-lg border bg-muted/40;
   }
 
+  /*
+   * Typographic roles.
+   *
+   * A section title should be one class, not a size plus a weight plus a
+   * tracking value remembered correctly in each of forty files. These are the
+   * four roles the app actually has; anything outside them is a one-off and
+   * should look like one.
+   */
+  .type-page-title {
+    @apply text-title font-semibold text-foreground;
+  }
+  .type-section-title {
+    @apply text-heading font-semibold text-foreground;
+  }
+  .type-card-title {
+    @apply text-subheading font-semibold text-foreground;
+  }
+  .type-body {
+    @apply text-body text-muted-foreground;
+  }
+
   /* Section label above a group of controls or stats. */
   .eyebrow {
-    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+    @apply text-caption font-medium uppercase tracking-wider text-muted-foreground;
   }
 
   /* Numeric display used by scores and counters. */

@@ -92,6 +92,40 @@ const config: Config = {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
+      /**
+       * Named type scale.
+       *
+       * **Added, never overridden.** Tailwind's own `text-sm`/`text-base` keys
+       * are left exactly as they are, because ~150 existing usages depend on
+       * them and redefining a key would silently resize the whole app. These
+       * are new names that those usages can migrate onto page by page.
+       *
+       * The scale exists because the sizes had drifted: 21 hand-written pixel
+       * values across 9 files (`text-[11px]` seventeen times), and a section
+       * title rendered as `text-sm`, `text-base` *and* `text-lg` + semibold in
+       * different places. Each step below carries its own line height and
+       * tracking, so a heading cannot be the right size and the wrong rhythm.
+       */
+      fontSize: {
+        /** Marketing hero only. */
+        display: ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+        /** Page title — one per page. */
+        title: ["1.75rem", { lineHeight: "1.2", letterSpacing: "-0.015em" }],
+        /** Section title within a page. */
+        heading: ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.01em" }],
+        /** Card title. */
+        subheading: ["1rem", { lineHeight: "1.4", letterSpacing: "-0.005em" }],
+        /** Long-form body copy, slightly larger than `text-sm` for reading. */
+        body: ["0.9375rem", { lineHeight: "1.6" }],
+        /**
+         * Labels, timestamps and eyebrows.
+         *
+         * 11px rather than Tailwind's 12px `text-xs` precisely because 11px is
+         * what the codebase kept reaching for by hand. Tokenising the size
+         * people actually wanted is what stops them writing it literally again.
+         */
+        caption: ["0.6875rem", { lineHeight: "1.45", letterSpacing: "0.01em" }],
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

@@ -741,3 +741,69 @@ committed.
 No browser, camera or mic testing. The sampling loop, the consent flow and the
 layout are unverified visually; everything above is tests, typecheck, lint,
 build and code inspection.
+
+---
+
+# Design system
+
+Audited before changing anything, because most of it already existed and was
+already documented. Replacing a working palette to look busy would have risked
+the demo for nothing.
+
+## Already in place (kept as-is)
+| Piece | Where |
+|---|---|
+| Light + dark palettes: background/foreground, card, popover, primary, secondary, muted, accent | `app/globals.css` |
+| Semantic states: `success`, `warning`, `destructive`, `info` | both themes |
+| A separate `--brand` indigo, with a written rationale for keeping it off ordinary buttons | `globals.css` |
+| Radius scale from one `--radius` (0.625rem) → `sm`/`md`/`lg`/`xl` | `tailwind.config.ts` |
+| Three-step shadow scale bound to CSS variables, so dark mode gets different weights | both |
+| Fonts via `next/font`: **Inter** (sans) + **JetBrains Mono** (mono) | `app/layout.tsx` |
+| Container: centred, 1.5rem padding, 1360px max | `tailwind.config.ts` |
+| 5 chart colours, per theme | both |
+| Global `:focus-visible` ring, skip link, `prefers-reduced-motion` | `globals.css` |
+| Named surfaces `.surface` / `.surface-raised` / `.surface-muted`, `.metric`, `.brand-chip`, `.kbd` | `globals.css` |
+| Shared blocks: `PageHeader`, `StatCard`, `EmptyState`, `ScoreRing`, `ScoreBar`, full `Card` primitives | `components/shared/`, `components/ui/card.tsx` |
+
+## The one real gap: type
+
+Type had drifted, measurably:
+- **21 hand-written pixel sizes across 9 files** — `text-[11px]` seventeen
+  times, plus `text-[15px]`, `text-[10px]`, `text-[28px]`.
+- A section title rendered three different ways: `text-sm font-semibold` (16
+  uses), `text-base font-semibold` (9), `text-lg font-semibold` (12).
+- Page titles at `text-2xl` (11), `text-3xl` (7) and `text-4xl` (1).
+
+### Added
+A named scale in `tailwind.config.ts`, **added alongside Tailwind's defaults and
+never overriding them** — ~150 existing usages depend on `text-sm`/`text-base`,
+and redefining a key would silently resize the whole app.
+
+| Token | Size / line-height | Role |
+|---|---|---|
+| `text-display` | 2.5rem / 1.1 | marketing hero only |
+| `text-title` | 1.75rem / 1.2 | page title, one per page |
+| `text-heading` | 1.25rem / 1.3 | section title |
+| `text-subheading` | 1rem / 1.4 | card title |
+| `text-body` | 0.9375rem / 1.6 | long-form copy |
+| `text-caption` | 0.6875rem / 1.45 | labels, timestamps, eyebrows |
+
+Each step carries its own line-height and tracking, so a heading cannot be the
+right size and the wrong rhythm.
+
+`text-caption` is **11px, not Tailwind's 12px `text-xs`**, precisely because
+11px is what the codebase kept reaching for by hand. Tokenising the size people
+actually wanted is what stops them writing it literally again. `.eyebrow` was
+retargeted onto it (a 1px change on existing eyebrows) so there is one caption
+size rather than two.
+
+### Four typographic roles
+`.type-page-title`, `.type-section-title`, `.type-card-title`, `.type-body` in
+`globals.css` — one class per role, so a section title is not a size plus a
+weight plus a tracking value remembered correctly in forty files.
+
+Verified in the built CSS: `.eyebrow` compiles to
+`font-size:.6875rem;line-height:1.45`. The `.type-*` roles are tree-shaken
+until a page uses them, which is expected — they appear as pages migrate.
+
+**No new dependency.** Build passes.
