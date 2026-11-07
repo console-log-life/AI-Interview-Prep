@@ -41,7 +41,7 @@ export function EvidenceList({ evidence }: { evidence: EvidenceRecord[] }) {
         {meaningful.map((record) => (
           <li key={`${record.turn}-${record.atMs}`} className="rounded-xl border bg-card p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                 Answer {record.turn}
                 {record.topicLabel && (
                   <span className="ml-2 font-normal normal-case">
@@ -49,7 +49,7 @@ export function EvidenceList({ evidence }: { evidence: EvidenceRecord[] }) {
                   </span>
                 )}
               </p>
-              <p className="text-[11px] tabular-nums text-muted-foreground">
+              <p className="text-caption tabular-nums text-muted-foreground">
                 {formatOffset(record.atMs)} · {record.wordCount} words
               </p>
             </div>

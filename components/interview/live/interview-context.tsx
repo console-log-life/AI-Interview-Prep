@@ -41,24 +41,24 @@ export function CurrentQuestion({
     >
       <div className="flex items-center gap-2">
         {isFollowUp ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-info">
+          <span className="inline-flex items-center gap-1 rounded-full bg-info/10 px-2 py-0.5 text-caption font-semibold uppercase tracking-wide text-info">
             <CornerDownRight className="h-3 w-3" aria-hidden="true" />
             Follow-up
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="inline-flex items-center gap-1 text-caption font-semibold uppercase tracking-wide text-muted-foreground">
             <HelpCircle className="h-3 w-3" aria-hidden="true" />
             Current question
           </span>
         )}
         {topic && (
-          <span className="truncate text-[11px] text-muted-foreground">
+          <span className="truncate text-caption text-muted-foreground">
             {topic}
           </span>
         )}
       </div>
 
-      <p className="mt-2 text-pretty text-[15px] font-medium leading-relaxed">
+      <p className="mt-2 text-pretty text-body font-medium leading-relaxed">
         {question}
       </p>
     </section>
@@ -93,7 +93,7 @@ export function PhaseStrip({
         <span
           key={step.phase}
           className={cn(
-            "flex items-center gap-1.5 text-[11px]",
+            "flex items-center gap-1.5 text-caption",
             step.state === "current" && "font-semibold text-foreground",
             step.state === "done" && "text-muted-foreground",
             step.state === "upcoming" && "text-muted-foreground/60",

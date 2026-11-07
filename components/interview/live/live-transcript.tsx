@@ -52,11 +52,11 @@ export function LiveTranscript({
   return (
     <div className={cn("flex min-h-0 flex-col rounded-xl border bg-card", className)}>
       <div className="flex items-center justify-between border-b px-4 py-2.5">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
           Live transcript
         </h2>
         {lastSpeaker && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {lastSpeaker === "AI" ? "Interviewer" : "You"} speaking
           </span>
         )}
@@ -89,7 +89,7 @@ export function LiveTranscript({
                 >
                   <p
                     className={cn(
-                      "text-[11px] font-semibold uppercase tracking-wide",
+                      "text-caption font-semibold uppercase tracking-wide",
                       segment.speaker === "AI"
                         ? "text-brand"
                         : "text-muted-foreground",

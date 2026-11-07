@@ -105,7 +105,7 @@ function RubricBreakdown({
 
   return (
     <div className="mt-4 rounded-lg border bg-muted/30 p-3">
-      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h4 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
         How this answer scored
       </h4>
       <dl className="mt-2 space-y-2.5">
@@ -198,7 +198,7 @@ function ListSection({
                 <span className="text-pretty">{entry.point}</span>
               </p>
               <details className="mt-2">
-                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <summary className="cursor-pointer text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                   From answer {entry.questionIndex}
                   {entry.topic !== "General" && (
                     <span className="ml-1 font-normal normal-case">

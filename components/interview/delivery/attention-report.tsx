@@ -51,7 +51,7 @@ export function AttentionReport({
             <p className="text-2xl font-semibold tabular-nums leading-none">
               {percent}%
             </p>
-            <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p className="mt-1 text-caption uppercase tracking-wide text-muted-foreground">
               on screen
             </p>
           </div>

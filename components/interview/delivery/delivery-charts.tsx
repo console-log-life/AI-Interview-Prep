@@ -81,7 +81,7 @@ export function PaceScale({
       {/* Labels share the track's proportions so each sits under its own band.
           `justify-between` would push the outer two to the edges and leave the
           middle labels pointing at the wrong ranges. */}
-      <div className="mt-1.5 flex gap-0.5 text-[11px] text-muted-foreground">
+      <div className="mt-1.5 flex gap-0.5 text-caption text-muted-foreground">
         {PACE_BANDS.map((entry) => {
           const upper = entry.maxWpm ?? PACE_SCALE_MAX_WPM;
           const width = ((upper - entry.minWpm) / PACE_SCALE_MAX_WPM) * 100;
@@ -133,7 +133,7 @@ export function AnswerLengths({ wordCounts }: { wordCounts: number[] }) {
           const short = count < SHORT_ANSWER_WORDS;
           return (
             <li key={index} className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+              <span className="w-14 shrink-0 text-caption tabular-nums text-muted-foreground">
                 Answer {String(index + 1).padStart(2, "0")}
               </span>
               <span className="relative h-4 flex-1 overflow-hidden rounded-sm bg-muted/50">
@@ -145,7 +145,7 @@ export function AnswerLengths({ wordCounts }: { wordCounts: number[] }) {
                   style={{ width: `${Math.max(2, (count / longest) * 100)}%` }}
                 />
               </span>
-              <span className="w-16 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+              <span className="w-16 shrink-0 text-right text-caption tabular-nums text-muted-foreground">
                 {count} words
               </span>
             </li>
@@ -153,7 +153,7 @@ export function AnswerLengths({ wordCounts }: { wordCounts: number[] }) {
         })}
       </ul>
 
-      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="mt-2 text-caption leading-relaxed text-muted-foreground">
         Length alone does not determine answer quality. Answers under{" "}
         {SHORT_ANSWER_WORDS} words are highlighted only because they rarely leave
         room to explain reasoning.
