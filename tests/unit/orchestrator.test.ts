@@ -272,6 +272,100 @@ describe("follow-up engine", () => {
 
 // --- contextual follow-up ---------------------------------------------------
 
+/**
+ * Persona as pressure, not just tone.
+ *
+ * Tone lived in the prompt and timing in `silenceDurationMs`, but the
+ * controller used one global follow-up budget for every persona — so a warm
+ * recruiter and a tough senior engineer dug into the same weak answer exactly
+ * as many times. The persona was a label on identical behaviour.
+ *
+ * What is pinned here is that the budget differs *and* that PROFESSIONAL still
+ * behaves exactly as it did before the persona reached the controller.
+ */
+describe("persona sets how hard one topic is pressed", () => {
+  function pressing(persona: InterviewPlanInput["persona"], followUpsOnTopic: number) {
+    const base = createOrchestratorState(planInput({ persona }));
+    return decideSteering(
+      {
+        ...base,
+        startedAtMs: 0,
+        currentTopicId: base.plan[2]?.id ?? base.plan[0].id,
+        questionCount: 2,
+        followUpsOnTopic,
+        lastAnswer: analyzeAnswer(WEAK_ANSWER),
+      },
+      60_000,
+    );
+  }
+
+  /** A follow-up directive, as opposed to moving the interview on. */
+  function isFollowUp(reason: string | undefined): boolean {
+    return reason === "SIMPLIFY" || reason === "FOLLOW_UP_REQUIRED";
+  }
+
+  it("carries the persona onto the state", () => {
+    expect(createOrchestratorState(planInput({ persona: "STRICT" })).persona).toBe(
+      "STRICT",
+    );
+  });
+
+  it("presses a weak answer once as FRIENDLY, then moves on", () => {
+    expect(isFollowUp(pressing("FRIENDLY", 0)?.reason)).toBe(true);
+    // Budget of one: a warm recruiter screen does not cross-examine.
+    expect(isFollowUp(pressing("FRIENDLY", 1)?.reason)).toBe(false);
+  });
+
+  it("keeps the previous behaviour for PROFESSIONAL", () => {
+    // The regression that matters: PROFESSIONAL was the old global default of
+    // 2, and an existing demo must behave identically.
+    expect(isFollowUp(pressing("PROFESSIONAL", 0)?.reason)).toBe(true);
+    expect(isFollowUp(pressing("PROFESSIONAL", 1)?.reason)).toBe(true);
+    expect(isFollowUp(pressing("PROFESSIONAL", 2)?.reason)).toBe(false);
+  });
+
+  it("presses further as STRICT than as PROFESSIONAL", () => {
+    expect(isFollowUp(pressing("STRICT", 2)?.reason)).toBe(true);
+    expect(isFollowUp(pressing("STRICT", 3)?.reason)).toBe(false);
+  });
+
+  it("presses as hard under STRESS as under STRICT, and no harder", () => {
+    // Deliberately equal: a fourth consecutive probe stops testing the
+    // candidate and starts testing their patience.
+    expect(isFollowUp(pressing("STRESS", 2)?.reason)).toBe(true);
+    expect(isFollowUp(pressing("STRESS", 3)?.reason)).toBe(false);
+  });
+
+  it("orders the personas friendly < professional < strict", () => {
+    const budget = (persona: InterviewPlanInput["persona"]) => {
+      let spent = 0;
+      while (spent < 10 && isFollowUp(pressing(persona, spent)?.reason)) spent += 1;
+      return spent;
+    };
+
+    expect(budget("FRIENDLY")).toBeLessThan(budget("PROFESSIONAL"));
+    expect(budget("PROFESSIONAL")).toBeLessThan(budget("STRICT"));
+  });
+
+  it("spends the budget only when an answer leaves something open", () => {
+    // A budget, not a quota: a sufficient answer must not be followed up just
+    // because the persona is allowed to.
+    const base = createOrchestratorState(planInput({ persona: "STRICT" }));
+    const directive = decideSteering(
+      {
+        ...base,
+        startedAtMs: 0,
+        currentTopicId: base.plan[2]?.id ?? base.plan[0].id,
+        questionCount: 2,
+        followUpsOnTopic: 0,
+        lastAnswer: null,
+      },
+      60_000,
+    );
+    expect(isFollowUp(directive?.reason)).toBe(false);
+  });
+});
+
 describe("contextual follow-up from the candidate's own words", () => {
   it("opens a thread when the candidate names an unprobed technology", () => {
     const base = createOrchestratorState(planInput());

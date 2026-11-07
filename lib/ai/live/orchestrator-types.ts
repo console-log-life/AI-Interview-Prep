@@ -91,6 +91,14 @@ export type AnswerSignal = {
 
 export type OrchestratorState = {
   phase: InterviewPhase;
+  /**
+   * Who is conducting the interview.
+   *
+   * Held on the state rather than read from the plan at each decision so the
+   * reducer stays a pure function of its own state, and so a test can set a
+   * persona without building a whole plan.
+   */
+  persona: InterviewerPersona;
   difficulty: Difficulty;
   plan: PlannedTopic[];
   currentTopicId: string | null;

@@ -170,6 +170,19 @@ export type PersonaTuning = {
   /** Prebuilt Live voice name. */
   voiceName: string;
   /**
+   * Follow-ups the interviewer may ask on one topic before moving on.
+   *
+   * The persona's *pressure*, as opposed to its tone. Tone was already
+   * expressed in the prompt and timing in `silenceDurationMs`, but the
+   * controller used one global budget for everybody — so a friendly recruiter
+   * and a tough senior engineer dug into a weak answer exactly as many times,
+   * and the persona was a label on identical behaviour.
+   *
+   * A budget, not a target: the interview only spends it when an answer
+   * actually leaves something open.
+   */
+  followUpBudget: number;
+  /**
    * Silence before the model treats the answer as finished.
    *
    * This is the single most consequential number in the whole feature. The
@@ -200,6 +213,9 @@ export const PERSONA_TUNING: Record<InterviewerPersona, PersonaTuning> = {
     displayName: "Sam",
     title: "AI Interviewer",
     voiceName: "Aoede",
+    // Takes the first answer largely as given and moves on. A warm recruiter
+    // screen does not cross-examine.
+    followUpBudget: 1,
     // Most patient: a warm recruiter lets a nervous candidate find the words.
     silenceDurationMs: 3000,
     prefixPaddingMs: 300,
@@ -209,6 +225,9 @@ export const PERSONA_TUNING: Record<InterviewerPersona, PersonaTuning> = {
     displayName: "Alex",
     title: "AI Technical Interviewer",
     voiceName: "Charon",
+    // The previous global default, kept so a PROFESSIONAL interview behaves
+    // exactly as it did before personas reached the controller.
+    followUpBudget: 2,
     silenceDurationMs: 2500,
     prefixPaddingMs: 250,
     interruptsCandidate: false,
@@ -217,6 +236,8 @@ export const PERSONA_TUNING: Record<InterviewerPersona, PersonaTuning> = {
     displayName: "Jordan",
     title: "AI Senior Engineer",
     voiceName: "Fenrir",
+    // Keeps pulling at a thread until it is resolved.
+    followUpBudget: 3,
     silenceDurationMs: 2300,
     prefixPaddingMs: 200,
     interruptsCandidate: true,
@@ -224,6 +245,10 @@ export const PERSONA_TUNING: Record<InterviewerPersona, PersonaTuning> = {
   STRESS: {
     displayName: "Riley",
     title: "AI Panel Interviewer",
+    // Same depth as STRICT. Deliberately not higher: a fourth consecutive
+    // probe on one topic stops testing the candidate and starts testing their
+    // patience, and the interview still has to cover its plan.
+    followUpBudget: 3,
     // Fast-paced, but still above the 2s floor. A persona that clips normal
     // thinking pauses is not applying pressure, it is broken — measured
     // splitting a single answer in two at 1.8s.
@@ -236,6 +261,16 @@ export const PERSONA_TUNING: Record<InterviewerPersona, PersonaTuning> = {
 
 export function tuningFor(persona: InterviewerPersona): PersonaTuning {
   return PERSONA_TUNING[persona] ?? PERSONA_TUNING.PROFESSIONAL;
+}
+
+/**
+ * How hard this persona presses one topic.
+ *
+ * Separate accessor so the controller does not have to reach for the whole
+ * tuning record — it has no business knowing about voices or display names.
+ */
+export function followUpBudgetFor(persona: InterviewerPersona): number {
+  return tuningFor(persona).followUpBudget;
 }
 
 /** Lower bound enforced regardless of persona or future edits. */

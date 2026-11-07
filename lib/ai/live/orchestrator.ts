@@ -1,5 +1,6 @@
 import type { Difficulty, InterviewType } from "@prisma/client";
 
+import { followUpBudgetFor } from "@/lib/ai/live/config";
 import type {
   AnswerSignal,
   ControllerLogEntry,
@@ -30,8 +31,21 @@ import type {
 
 // --- tunables ---------------------------------------------------------------
 
-/** Follow-ups on one topic before the interview must move on. */
+/**
+ * Default follow-ups on one topic before the interview must move on.
+ *
+ * Retained as the fallback for a state built without a persona; the live value
+ * comes from `followUpBudgetFor(state.persona)`, which is what makes a tough
+ * interviewer actually tougher rather than just differently worded.
+ */
 export const MAX_FOLLOW_UPS_PER_TOPIC = 2;
+
+/** This interview's follow-up budget. */
+function followUpLimit(state: Pick<OrchestratorState, "persona">): number {
+  return state.persona
+    ? followUpBudgetFor(state.persona)
+    : MAX_FOLLOW_UPS_PER_TOPIC;
+}
 /** Substantive exchanges after which a topic is considered explored. */
 export const EXCHANGES_TO_COVER = 2;
 /** Consecutive same-direction answers before difficulty shifts. */
@@ -323,6 +337,7 @@ export function createOrchestratorState(
 ): OrchestratorState {
   return {
     phase: "INTRO",
+    persona: input.persona,
     difficulty: input.difficulty,
     plan: buildPlan(input),
     currentTopicId: null,
@@ -721,7 +736,7 @@ export function decideSteering(
   const answer = state.lastAnswer;
 
   // 3. Follow-up obligations, driven by the last answer.
-  if (answer && current && state.followUpsOnTopic < MAX_FOLLOW_UPS_PER_TOPIC) {
+  if (answer && current && state.followUpsOnTopic < followUpLimit(state)) {
     if (answer.strength === "WEAK" || answer.admitsUncertainty) {
       return {
         reason: "SIMPLIFY",
@@ -764,7 +779,11 @@ export function decideSteering(
 
   // 4. A thread the candidate opened themselves — the most natural follow-up
   //    there is, and the thing that makes the interview feel like listening.
-  if (answer && state.openThreads.length > 0 && state.followUpsOnTopic < MAX_FOLLOW_UPS_PER_TOPIC) {
+  if (
+    answer &&
+    state.openThreads.length > 0 &&
+    state.followUpsOnTopic < followUpLimit(state)
+  ) {
     const thread = state.openThreads[0];
     return {
       reason: "PROBE_OPEN_THREAD",
