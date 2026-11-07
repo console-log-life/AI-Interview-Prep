@@ -230,21 +230,29 @@ function escapeRegex(text: string): string {
  * trade-offs does not need another trade-off question; one that quoted a number
  * without saying why does.
  */
-export type AnswerIntent =
-  | "REPEAT_QUESTION"
-  | "CLARIFY_QUESTION"
-  | "ANSWER_CANDIDATE_QUESTION"
-  | "PRESS_INCOMPLETE"
-  | "CHALLENGE_UNSUPPORTED_CLAIM"
-  | "RESOLVE_CONTRADICTION"
-  | "ASK_FOR_REASONING"
-  | "ASK_FOR_EXAMPLE"
-  | "ASK_FOR_TRADEOFF"
-  | "ASK_ABOUT_SCALE"
-  | "PROBE_MENTIONED_TECHNOLOGY"
-  | "PROBE_PERSONAL_CONTRIBUTION"
-  | "SIMPLIFY"
-  | "SUFFICIENT";
+export const ANSWER_INTENTS = [
+  "REPEAT_QUESTION",
+  "CLARIFY_QUESTION",
+  "ANSWER_CANDIDATE_QUESTION",
+  "PRESS_INCOMPLETE",
+  "CHALLENGE_UNSUPPORTED_CLAIM",
+  "RESOLVE_CONTRADICTION",
+  "ASK_FOR_REASONING",
+  "ASK_FOR_EXAMPLE",
+  "ASK_FOR_TRADEOFF",
+  "ASK_ABOUT_SCALE",
+  "PROBE_MENTIONED_TECHNOLOGY",
+  "PROBE_PERSONAL_CONTRIBUTION",
+  "SIMPLIFY",
+  "SUFFICIENT",
+] as const;
+
+/**
+ * Derived from the list above rather than written twice, so a new intent
+ * cannot be added to the type while the runtime validator in
+ * `parseEvidence` keeps rejecting it.
+ */
+export type AnswerIntent = (typeof ANSWER_INTENTS)[number];
 
 export function deriveIntent(u: AnswerUnderstanding): AnswerIntent {
   // Conversational repairs come first — the candidate is not answering yet.

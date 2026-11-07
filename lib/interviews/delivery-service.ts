@@ -4,6 +4,7 @@ import { NotFoundError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db/prisma";
 import type { SpeechSummary } from "@/lib/interviews/speech-metrics";
 import type { EvidenceRecord } from "@/lib/ai/live/memory";
+import { ANSWER_INTENTS } from "@/lib/ai/live/understanding";
 import type { VisualSummary } from "@/lib/interviews/visual";
 
 /**
@@ -149,7 +150,7 @@ export async function getInterviewDelivery(
  * malformed row must degrade to "no evidence" rather than crash the report or,
  * worse, render a half-populated record that reads as a finding.
  */
-function parseEvidence(value: unknown): EvidenceRecord[] {
+export function parseEvidence(value: unknown): EvidenceRecord[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
     if (typeof entry !== "object" || entry === null) return [];
@@ -162,13 +163,25 @@ function parseEvidence(value: unknown): EvidenceRecord[] {
         questionText: r.questionText,
         answerText: r.answerText,
         topicLabel: typeof r.topicLabel === "string" ? r.topicLabel : null,
-        intent: String(r.intent ?? "SUFFICIENT") as EvidenceRecord["intent"],
+        intent: isAnswerIntent(r.intent) ? r.intent : "SUFFICIENT",
         wordCount: typeof r.wordCount === "number" ? r.wordCount : 0,
         strengths: Array.isArray(r.strengths) ? r.strengths.filter((x): x is string => typeof x === "string") : [],
         gaps: Array.isArray(r.gaps) ? r.gaps.filter((x): x is string => typeof x === "string") : [],
       },
     ];
   });
+}
+
+/**
+ * An unrecognised intent falls back to SUFFICIENT rather than being cast
+ * through: the intent only labels why a follow-up was asked, so an unknown
+ * value from an older row should read as "nothing special" instead of
+ * reaching the UI as a string no branch handles.
+ */
+function isAnswerIntent(value: unknown): value is EvidenceRecord["intent"] {
+  return (
+    typeof value === "string" && (ANSWER_INTENTS as readonly string[]).includes(value)
+  );
 }
 
 function parseFillers(value: unknown): Array<{ term: string; count: number }> {
