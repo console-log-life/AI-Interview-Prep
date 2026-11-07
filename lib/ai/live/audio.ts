@@ -171,8 +171,8 @@ export class LiveAudioManager {
 
   /** Browsers start contexts suspended until a user gesture. */
   async resume(): Promise<void> {
-    await this.inputContext?.resume();
-    await this.outputContext?.resume();
+    // Independent contexts, so there is nothing to order between them.
+    await Promise.all([this.inputContext?.resume(), this.outputContext?.resume()]);
   }
 
   async dispose(): Promise<void> {

@@ -352,9 +352,19 @@ export function useLiveInterview({
   const stop = useCallback(async () => {
     samplerRef.current?.stop();
 
+    /**
+     * Both posts go at once.
+     *
+     * They write different rows through different endpoints and neither reads
+     * the other, while the candidate waits on this exact pair before the
+     * report page opens. Both swallow their own failures, so this cannot
+     * reject and cannot strand the teardown below.
+     */
     const segments = finalizedTurns(stateRef.current);
-    await flush(segments, stateRef.current.interruptions);
-    await sendDelivery();
+    await Promise.all([
+      flush(segments, stateRef.current.interruptions),
+      sendDelivery(),
+    ]);
 
     await clientRef.current?.stop();
     clientRef.current = null;

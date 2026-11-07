@@ -333,8 +333,17 @@ export class LiveInterviewClient {
       },
     });
 
-    await this.audio.startPlayback();
-    await this.audio.startCapture(stream);
+    /**
+     * Playback and capture are set up together.
+     *
+     * They share nothing -- separate AudioContexts, separate worklet modules,
+     * separate fields, each guarded against a second call -- and each one
+     * fetches its worklet over the network. In series that was two round trips
+     * before the candidate could be heard. The socket is still opened after
+     * them, deliberately: the interviewer's first audio must not arrive before
+     * there is a graph to play it on.
+     */
+    await Promise.all([this.audio.startPlayback(), this.audio.startCapture(stream)]);
     await this.audio.resume();
 
     await this.connect();

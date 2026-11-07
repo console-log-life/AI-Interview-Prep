@@ -25,8 +25,8 @@ external-device detection untouched), never weaken a test.
 | B6 | Stuck-state watchdogs (SPEAKING/THINKING/CONNECTING) | done | `lib/ai/live/client.ts`, `lib/ai/live/config.ts`, `tests/integration/live-client-safety.test.ts` | Fixed: CONNECT_TIMEOUT_MS (20s) + RESPONSE_TIMEOUT_MS (45s) watchdogs; 8 tests |
 | C1 | Graceful failures with human messages + a way forward | done | (see B4) | Retry was the missing way forward; failure messages were already human and classified, no stack traces in the UI |
 | C2 | State indicator driven by the real state machine | done | — (audit) | Already correct: one `phase` field drives the indicator, no competing booleans. RETRY reports connection as offline, never fake-connected |
-| C3 | devTrace coverage across the session lifecycle | todo | | |
-| C4 | Latency: clear low-risk wins only | todo | | |
+| C3 | devTrace coverage across the session lifecycle | done | `lib/ai/live/client.ts`, `hooks/use-live-interview.ts`, `tests/integration/live-client-safety.test.ts` | Added session-started / connected / mic-muted / mic-unmuted / session-ended; exposed devTrace() from the hook (nothing consumed it before); 10 tests |
+| C4 | Latency: clear low-risk wins only | done | `lib/ai/live/client.ts`, `lib/ai/live/audio.ts`, `hooks/use-live-interview.ts` | 3 safe wins: playback+capture worklet fetches in parallel, resume() in parallel, closing flush+delivery POSTs in parallel. Declined overlapping connect() with audio setup (first audio could arrive before the graph exists) |
 | D1 | Report page: 0 turns / partial / missing scores | todo | | |
 | D2 | Text-mode interview path still works | todo | | |
 | D3 | Env check: clear message + complete .env.example | todo | | |
