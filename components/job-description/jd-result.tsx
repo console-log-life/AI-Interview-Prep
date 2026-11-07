@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import type { SeniorityComparison } from "@/lib/analytics/seniority";
 import type { RoadmapStep, SkillLevel, SkillMatch } from "@/types/job-description";
 
 type JdResultProps = {
@@ -30,6 +31,13 @@ type JdResultProps = {
   missingSkills: string[];
   roadmap: RoadmapStep[];
   suggestedTopics: string[];
+  /**
+   * How this role's seniority compares to the candidate's stated level.
+   *
+   * Null when the ad does not say — which is common, and is shown as nothing
+   * at all rather than a guessed band.
+   */
+  seniority: SeniorityComparison | null;
 };
 
 const LEVEL_META: Record<
@@ -64,6 +72,21 @@ export function JdResult(props: JdResultProps) {
                   Experience required:{" "}
                 </span>
                 {props.experienceReq}
+              </p>
+            )}
+            {/* Read from the line above, onto the same scale as the
+                candidate's own level. Information about what to expect in the
+                interview, deliberately not advice about whether to apply. */}
+            {props.seniority && (
+              <p
+                className={cn(
+                  "text-sm text-pretty",
+                  props.seniority.verdict === "ABOVE"
+                    ? "text-warning"
+                    : "text-muted-foreground",
+                )}
+              >
+                {props.seniority.message}
               </p>
             )}
             <p className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground text-pretty">

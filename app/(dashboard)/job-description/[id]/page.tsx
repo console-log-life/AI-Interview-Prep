@@ -4,7 +4,9 @@ import { JdResult } from "@/components/job-description/jd-result";
 import { JobReadinessCard } from "@/components/job-description/job-readiness-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { getJobReadiness } from "@/lib/analytics/job-readiness";
+import { compareSeniority, deriveSeniority } from "@/lib/analytics/seniority";
 import { requireUserPage } from "@/lib/auth/session";
+import { prisma } from "@/lib/db/prisma";
 import { toStringArray } from "@/lib/db/queries/users";
 import { getJobDescription } from "@/lib/job-description/service";
 import { formatDateTime } from "@/lib/utils";
@@ -68,11 +70,16 @@ export default async function JobDescriptionResultPage({
   const user = await requireUserPage();
   const { id } = await params;
 
-  // Both are ownership-scoped; readiness is a pure DB read, so it costs
-  // nothing and works with no AI key configured.
-  const [jd, readiness] = await Promise.all([
+  // All ownership-scoped; readiness and the profile are pure DB reads, so they
+  // cost nothing and work with no AI key configured. The profile supplies the
+  // candidate's own level, which is the other half of the seniority comparison.
+  const [jd, readiness, profile] = await Promise.all([
     getJobDescription(user.id, id),
     getJobReadiness(user.id, id),
+    prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: { experienceLevel: true },
+    }),
   ]);
 
   return (
@@ -99,6 +106,12 @@ export default async function JobDescriptionResultPage({
         missingSkills={toStringArray(jd.missingSkills)}
         roadmap={toRoadmap(jd.roadmap)}
         suggestedTopics={jd.suggestedTopics}
+        /* Derived at read time rather than stored, so it works on job
+           descriptions analysed before this existed. */
+        seniority={compareSeniority(
+          deriveSeniority(jd.experienceReq, jd.title),
+          profile?.experienceLevel,
+        )}
       />
     </>
   );
