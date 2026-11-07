@@ -248,7 +248,24 @@ export function useLiveInterview({
       clientRef.current = client;
       await client.start(stream);
     } catch (error) {
+      /**
+       * Release the half-started session.
+       *
+       * `clientRef` is assigned before `client.start`, and the guard at the
+       * top of this function returns early when it is set — so leaving a
+       * failed client in place made every later attempt a silent no-op. The
+       * client is stopped rather than just dropped, because it may already
+       * own an AudioContext and a socket.
+       */
+      const failed = clientRef.current;
+      clientRef.current = null;
       startingRef.current = false;
+      try {
+        await failed?.stop();
+      } catch {
+        // Already torn down, which is the expected case here.
+      }
+
       dispatch({
         type: "ERROR",
         message:
@@ -258,6 +275,42 @@ export function useLiveInterview({
       });
     }
   }, [interviewId, requestPermissions]);
+
+  /**
+   * Starts over after a failed session.
+   *
+   * `connect` reports a failure as "You can retry", so there has to be
+   * something that actually retries. A fresh attempt needs a clean slate: the
+   * dead client still holds an AudioContext and possibly a socket, and
+   * `start` refuses to run while `clientRef` is set.
+   *
+   * The media stream is released too and re-requested, because a connect
+   * failure is not the only way to get here — a microphone revoked
+   * mid-interview also lands in FAILED, and reusing its dead tracks would
+   * fail again for a reason the candidate cannot see.
+   */
+  const retry = useCallback(async () => {
+    const failed = clientRef.current;
+    clientRef.current = null;
+    startingRef.current = false;
+    try {
+      await failed?.stop();
+    } catch {
+      // Already torn down.
+    }
+
+    samplerRef.current?.stop();
+    samplerRef.current = null;
+    for (const track of streamRef.current?.getTracks() ?? []) track.stop();
+    streamRef.current = null;
+    // The next session must be allowed to post its own delivery summary.
+    deliverySentRef.current = false;
+
+    // Must precede `start`: FAILED is terminal, so the permission and connect
+    // events `start` dispatches would all be dropped by the reducer.
+    dispatch({ type: "RETRY" });
+    await start();
+  }, [start]);
 
   /**
    * Posts the delivery measurements.
@@ -484,6 +537,7 @@ export function useLiveInterview({
     requestPermissions,
     attachPreview,
     start,
+    retry,
     stop,
     toggleMic,
     toggleSpeaker,

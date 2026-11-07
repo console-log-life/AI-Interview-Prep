@@ -104,6 +104,7 @@ export function InterviewRoom({
     outputLevel,
     attachPreview,
     start,
+    retry,
     stop,
     toggleMic,
     toggleSpeaker,
@@ -135,6 +136,8 @@ export function InterviewRoom({
   useEffect(() => {
     attachPreview(videoRef.current);
   }, [attachPreview, state.media.camera]);
+
+  const [retrying, setRetrying] = useState(false);
 
   const endedRef = useRef(false);
   async function endInterview() {
@@ -227,6 +230,23 @@ export function InterviewRoom({
           <AlertTitle>The interview could not continue</AlertTitle>
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span className="text-pretty">{state.error}</span>
+            {/* The connect error says "you can retry", so retrying has to be
+                possible from here rather than only by reloading the page. */}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={retrying}
+              onClick={async () => {
+                setRetrying(true);
+                try {
+                  await retry();
+                } finally {
+                  setRetrying(false);
+                }
+              }}
+            >
+              {retrying ? "Reconnecting…" : "Try again"}
+            </Button>
             <Button
               size="sm"
               variant="outline"

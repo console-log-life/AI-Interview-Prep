@@ -132,7 +132,15 @@ export type LiveEvent =
   | { type: "RECONNECTING" }
   | { type: "RECONNECTED" }
   | { type: "COMPLETED" }
-  | { type: "ERROR"; message: string };
+  | { type: "ERROR"; message: string }
+  /**
+   * The candidate asked to try again after a failed session.
+   *
+   * Needed as its own event because FAILED is terminal: without a way out of
+   * it, the "You can retry" the connect error promises has nothing to act on,
+   * and the room's only exit is the text interview.
+   */
+  | { type: "RETRY" };
 
 /** What the browser needs to open its own Live socket. Never the real key. */
 export type LiveSessionGrant = {

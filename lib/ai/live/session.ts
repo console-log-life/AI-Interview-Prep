@@ -54,7 +54,11 @@ export function liveReducer(
 ): LiveSessionState {
   // Once completed or failed, only an explicit new session moves us. Late
   // socket messages arriving after "End interview" must not resurrect the UI.
-  if (isTerminal(state) && event.type !== "ERROR") return state;
+  // RETRY is that explicit new session, and is admitted for the same reason
+  // ERROR is: both are deliberate, neither is a late socket event.
+  if (isTerminal(state) && event.type !== "ERROR" && event.type !== "RETRY") {
+    return state;
+  }
 
   switch (event.type) {
     case "PERMISSIONS_REQUESTED":
@@ -203,6 +207,29 @@ export function liveReducer(
         connection: "closed",
         error: event.message,
       };
+
+    /**
+     * Start over after a failure.
+     *
+     * Only from FAILED: an interview the candidate ended is finished, and
+     * letting RETRY reopen it would turn a stray click on a completed report
+     * into a second session against the same interview row.
+     *
+     * The transcript and the interview clock are deliberately kept. The words
+     * the candidate already said are not the connection's to discard — the
+     * same reasoning `handleDrop` applies to a mid-sentence reconnect — and
+     * restarting the clock would hand back time the session already used.
+     */
+    case "RETRY":
+      return state.phase === "FAILED"
+        ? {
+            ...state,
+            phase: "IDLE",
+            connection: "offline",
+            error: null,
+            deviceNotice: null,
+          }
+        : state;
 
     default: {
       // Exhaustiveness: adding an event without handling it fails to compile.

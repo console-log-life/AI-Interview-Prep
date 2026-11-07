@@ -355,6 +355,91 @@ describe("terminal states", () => {
   });
 });
 
+/**
+ * Retrying after a failure.
+ *
+ * The connect error tells the candidate "you can retry", so there has to be a
+ * way out of FAILED. It is the one event besides ERROR that is allowed through
+ * the terminal guard, which makes the exact boundary worth pinning down.
+ */
+describe("retry after a failed session", () => {
+  const FAILED: LiveEvent[] = [
+    ...CONNECTED,
+    { type: "ERROR", message: "Could not connect to the voice service." },
+  ];
+
+  it("leaves FAILED so a new session can start", () => {
+    const state = run([...FAILED, { type: "RETRY" }]);
+    expect(state.phase).toBe("IDLE");
+    expect(isTerminal(state)).toBe(false);
+  });
+
+  it("clears the error so the alert stops showing", () => {
+    const state = run([...FAILED, { type: "RETRY" }]);
+    expect(state.error).toBeNull();
+  });
+
+  it("reports the connection as offline, not connected", () => {
+    // A retry that claimed "connected" before the socket exists is exactly
+    // the fake-connected state the room must never show.
+    const state = run([...FAILED, { type: "RETRY" }]);
+    expect(state.connection).toBe("offline");
+  });
+
+  it("keeps the transcript the candidate already produced", () => {
+    const state = run([
+      ...CONNECTED,
+      { type: "TRANSCRIPT", speaker: "CANDIDATE", text: "I used Postgres", atMs: 1000, interim: false },
+      { type: "ERROR", message: "connection lost" },
+      { type: "RETRY" },
+    ]);
+    expect(state.transcript).toHaveLength(1);
+    expect(state.transcript[0].text).toBe("I used Postgres");
+  });
+
+  it("does not restart the interview clock", () => {
+    const state = run([...FAILED, { type: "RETRY" }]);
+    expect(state.startedAtMs).toBe(1_000);
+  });
+
+  it("clears a stale device notice", () => {
+    const state = run([
+      ...CONNECTED,
+      { type: "DEVICE_LOST", device: "microphone" },
+      { type: "ERROR", message: "microphone gone" },
+      { type: "RETRY" },
+    ]);
+    expect(state.deviceNotice).toBeNull();
+  });
+
+  it("does not reopen an interview the candidate completed", () => {
+    // A stray retry on a finished session would open a second live session
+    // against an interview that has already been reported.
+    const state = run([...CONNECTED, { type: "COMPLETED" }, { type: "RETRY" }]);
+    expect(state.phase).toBe("COMPLETED");
+  });
+
+  it("is a no-op on a healthy session", () => {
+    const connected = run(CONNECTED);
+    expect(liveReducer(connected, { type: "RETRY" })).toBe(connected);
+  });
+
+  it("accepts the events a fresh start dispatches, once retried", () => {
+    // The regression this guards: FAILED is terminal, so dispatching RETRY
+    // after `start()` instead of before left every permission and connect
+    // event silently dropped.
+    const state = run([
+      ...FAILED,
+      { type: "RETRY" },
+      { type: "PERMISSIONS_REQUESTED" },
+      GRANTED,
+      { type: "CONNECT_STARTED" },
+    ]);
+    expect(state.phase).toBe("CONNECTING");
+    expect(state.connection).toBe("connecting");
+  });
+});
+
 describe("devices disappearing mid-interview", () => {
   it("keeps the session alive when the camera is unplugged", () => {
     // Tearing the session down would lose the transcript over something a
