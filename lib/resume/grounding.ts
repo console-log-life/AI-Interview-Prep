@@ -60,17 +60,77 @@ export type GroundingResult = {
  * the safe direction.
  */
 function numbersIn(text: string): string[] {
-  return [...text.matchAll(/\d+(?:[.,]\d+)*/g)].map((match) =>
+  // Normalised first so a full-width digit or a thousands separator written
+  // with a narrow space is read as the number it is. The comparison itself is
+  // unchanged: a figure absent from the résumé still drops the claim.
+  return [...normalizeForMatching(text).matchAll(/\d+(?:[.,]\d+)*/g)].map((match) =>
     match[0].replace(/,/g, ""),
   );
 }
 
+/**
+ * Flattens the artefacts PDF extraction leaves behind.
+ *
+ * This is the difference between a grounding check that works on a real
+ * résumé and one that only works on text someone typed. Every rule below
+ * corresponds to something pdf.js actually emits, and each one caused a
+ * *legitimate* claim to be dropped:
+ *
+ * - **Ligatures.** A PDF often stores "fi" as the single glyph U+FB01, so
+ *   "verified" extracts as "veri" + "ed" and never matches the model's
+ *   "verified". NFKC decomposes it back to two letters.
+ * - **Typographic punctuation.** Curly apostrophes and en dashes survive
+ *   `normalizeResumeText`, so "team's" and "3–5" tokenise differently from
+ *   "team's" and "3-5".
+ * - **Non-breaking spaces.** U+00A0 is a space separator, not a control
+ *   character, so the control-character strip in `extract.ts` leaves it in
+ *   place and it does not match `[ \t]`.
+ * - **Hyphenation across a line break.** A résumé laid out in two columns
+ *   wraps "micro-\nservices", which tokenises as "micro" and "services"
+ *   while the model reads the word as "microservices".
+ *
+ * None of this touches the number check — it only decides which characters
+ * count as the same character.
+ */
+function normalizeForMatching(text: string): string {
+  return (
+    text
+      // Expands ligatures and full-width forms to their ASCII equivalents.
+      .normalize("NFKC")
+      .replace(/[\u2018\u2019\u201B\u02BC]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2010-\u2015\u2212]/g, "-")
+      .replace(/[\u00A0\u2007\u202F\u2000-\u200A]/g, " ")
+      // Rejoins a word split by a line-break hyphen.
+      .replace(/-[ \t]*\n[ \t]*/g, "")
+      .toLowerCase()
+  );
+}
+
 function tokensIn(text: string): string[] {
-  return text
-    .toLowerCase()
+  return normalizeForMatching(text)
     .split(/[^a-z0-9+#.]+/)
     .map((token) => token.replace(/^\.+|\.+$/g, ""))
     .filter((token) => token.length > 1 && !NOISE.has(token));
+}
+
+/**
+ * The source with every separator removed.
+ *
+ * Extraction sometimes loses the space between words entirely —
+ * "Reducedp95latencyby35%" — and a résumé that did that to one line is not a
+ * résumé that fabricated the claim. The model reads the glued text and writes
+ * it back out spaced correctly, so the tokens stop matching even though the
+ * claim is a faithful restatement.
+ *
+ * Used only as a fallback for tokens of five characters or more. Short tokens
+ * like "api" or "sql" occur inside unrelated words once the spaces are gone,
+ * and accepting those would make the check meaningless.
+ */
+const MIN_GLUED_MATCH = 5;
+
+function gluedForm(text: string): string {
+  return normalizeForMatching(text).replace(/[^a-z0-9+#]/g, "");
 }
 
 /**
@@ -93,7 +153,13 @@ export function groundClaim(claimText: string, resumeText: string): GroundingRes
 
   const claimTokens = [...new Set(tokensIn(claim))];
   const sourceTokens = new Set(tokensIn(resumeText));
-  const found = claimTokens.filter((token) => sourceTokens.has(token));
+  const glued = gluedForm(resumeText);
+
+  const found = claimTokens.filter(
+    (token) =>
+      sourceTokens.has(token) ||
+      (token.length >= MIN_GLUED_MATCH && glued.includes(token)),
+  );
   const overlap = claimTokens.length === 0 ? 0 : found.length / claimTokens.length;
 
   // Checked first: an invented figure is the failure that reaches the candidate

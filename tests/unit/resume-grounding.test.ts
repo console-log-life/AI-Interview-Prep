@@ -134,6 +134,91 @@ describe("groundClaim — degenerate input", () => {
   });
 });
 
+/**
+ * PDF extraction artefacts.
+ *
+ * Every case below is something pdf.js genuinely emits, and each one used to
+ * drop a *legitimate* claim — the worst failure this filter can have, because
+ * the candidate loses a real probe question and nothing says why.
+ *
+ * The snippets are anonymised fragments written for this file, not extracts of
+ * anyone's résumé. The number check must stay strict throughout: normalisation
+ * decides which characters are the same character, never which figures count.
+ */
+describe("groundClaim — PDF extraction artefacts", () => {
+  it("matches across a ligature", () => {
+    // A PDF often stores "fi" as the single glyph U+FB01, so "verified"
+    // extracted as "veri" + "ed" and never matched the model's "verified".
+    const resume = "Veri\ufb01ed payment \ufb02ows for the checkout service";
+    expect(groundClaim("Verified payment flows for checkout", resume).grounded).toBe(
+      true,
+    );
+  });
+
+  it("matches across a curly apostrophe", () => {
+    const resume = "Owned the team\u2019s deployment pipeline end to end";
+    expect(groundClaim("Owned the team's deployment pipeline", resume).grounded).toBe(
+      true,
+    );
+  });
+
+  it("matches across an en dash in a range", () => {
+    const resume = "Backend Engineer, 2023\u20132025, order service";
+    const result = groundClaim("Worked on the order service 2023-2025", resume);
+    expect(result.missingNumbers).toEqual([]);
+    expect(result.grounded).toBe(true);
+  });
+
+  it("matches across a non-breaking space", () => {
+    // U+00A0 is a space separator, not a control character, so the strip in
+    // extract.ts leaves it in place.
+    const resume = "Built\u00a0a\u00a0REST\u00a0API\u00a0in\u00a0Node.js";
+    expect(groundClaim("Built a REST API in Node.js", resume).grounded).toBe(true);
+  });
+
+  it("matches a word hyphenated across a line break", () => {
+    // Two-column layouts wrap mid-word.
+    const resume = "Decomposed the monolith into micro-\nservices with Kafka";
+    expect(groundClaim("Decomposed the monolith into microservices", resume).grounded).toBe(
+      true,
+    );
+  });
+
+  it("matches when extraction lost the spaces entirely", () => {
+    // The model reads the glued text and writes it back spaced correctly, so
+    // the tokens stop matching even though the claim is faithful.
+    const resume = "ReducedP95checkoutlatencyby35%usingaRediscache";
+    const result = groundClaim("Reduced p95 checkout latency by 35%", resume);
+    expect(result.missingNumbers).toEqual([]);
+    expect(result.grounded).toBe(true);
+  });
+
+  it("still rejects an invented figure in glued text", () => {
+    // The whole point: leniency about characters must not become leniency
+    // about numbers.
+    const resume = "ReducedP95checkoutlatencyby35%usingaRediscache";
+    const result = groundClaim("Reduced p95 checkout latency by 80%", resume);
+    expect(result.grounded).toBe(false);
+    expect(result.reason).toBe("UNSUPPORTED_NUMBER");
+    expect(result.missingNumbers).toContain("80");
+  });
+
+  it("does not let the glued fallback match a short token by accident", () => {
+    // "api" and "sql" occur inside unrelated words once spaces are gone, so
+    // the fallback only applies from five characters up. This claim shares
+    // nothing real with the source and must still be rejected.
+    const resume = "Rapidly shipped a graphical dashboard for internal use";
+    expect(groundClaim("Built an API with SQL and Go", resume).grounded).toBe(false);
+  });
+
+  it("still rejects a genuinely unrelated claim after normalisation", () => {
+    const resume = "Veri\ufb01ed payment \ufb02ows for the checkout\u00a0service";
+    const result = groundClaim("Administered Kubernetes clusters on GCP", resume);
+    expect(result.grounded).toBe(false);
+    expect(result.reason).toBe("LOW_OVERLAP");
+  });
+});
+
 describe("filterGroundedClaims", () => {
   const CLAIMS = [
     { text: "Reduced p95 latency by 40% with a Redis cache" },
