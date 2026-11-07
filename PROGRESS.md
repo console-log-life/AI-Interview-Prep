@@ -341,3 +341,60 @@ which is still unrun.
 item that came near the voice path (rank 4) changed `orchestrator.ts` and
 `config.ts`, which are pure modules the client imports, and is covered by
 reducer tests that need no socket.
+
+
+---
+
+# Fix + real-data session
+
+Demo tomorrow. Fixes, data quality and verification only — no new features.
+Restore points: `demo-stable`, and `demo-final` (**created in this session**:
+the tag did not exist, so HEAD `dbd26a6` was tagged to give the restore point
+that was assumed to be there).
+
+API-call budget: step 3 ≤ 6, step 4 ≤ 12, step 7 ≤ 8. Running total is logged
+at the end of this section.
+
+## Step 1 — database matches the code ✅ FIXED
+
+This was real and would have broken the demo. Both migrations from the previous
+session existed on disk but had never been applied, so the result page would
+have failed on `InterviewReport.evidence` and
+`InterviewEvaluation.rubricNotes`.
+
+| Check | Result |
+|---|---|
+| `prisma migrate status` before | 2 pending: `20261019120000_report_evidence`, `20261019130000_rubric_notes` |
+| `prisma migrate deploy` | both applied, "All migrations have been successfully applied" |
+| `prisma migrate status` after | **"Database schema is up to date!"** (10 migrations) |
+| Columns in the live DB | `InterviewEvaluation.rubricNotes` jsonb default `'{}'::jsonb`; `InterviewReport.evidence` jsonb default `'[]'::jsonb` — both confirmed via `information_schema.columns` |
+| Drift | `prisma migrate diff` → **"No difference detected"** |
+
+`migrate deploy` was used rather than `migrate dev` precisely because it only
+applies pending migrations and never resets. Dev data confirmed intact
+afterwards: 9 users, 9 interviews, 1 report, 5 evaluations, 43 questions,
+0 resumes.
+
+## Step 2 — database-backed tests: the premise does not hold
+
+Nothing was being skipped. Verified rather than assumed:
+
+- `hasDatabase` is exported from `tests/setup.ts:24` and **no file imports it**.
+- There is no `skipIf`, `describe.skip` or `it.skip` anywhere in `tests/`.
+- Every vitest run in this and the previous session reported
+  `1315 passed (1315)` with **no skipped count**.
+- Of the files touching `@/lib/db/prisma`, all 3 mock it; **no test imports the
+  real client**, and vitest does not load `.env`, so `DATABASE_URL` is unset
+  during tests regardless.
+
+So: **0 tests were previously skipped, and 0 became newly runnable.** The suite
+is hermetic by design — the architecture section calls this the "no database,
+no API keys" property, and it is why the whole app can be exercised without
+either.
+
+`hasDatabase` is therefore dead code. Left in place: removing it is churn with
+no behavioural effect, and the night before a demo is the wrong time for
+cosmetic edits. Noted here instead.
+
+Real-database validation is not skipped as a result — it is what **step 7**
+does, end to end against the dev DB, cleaning up only its own rows.
