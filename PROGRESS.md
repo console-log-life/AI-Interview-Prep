@@ -823,3 +823,66 @@ until a page uses them, which is expected — they appear as pages migrate.
 | 7 | Interview room | **Dark and full-bleed.** A `.dark` wrapper scopes the dark tokens to the room only, so every child (presence tile, captions card, alerts) adapts without being restyled individually; negative margins cancel the dashboard gutter so the stage fills the viewport **without moving the route out of its layout group and away from the auth guard there**. Two equal `flex-1` tiles on black instead of fixed 260px boxes. Status is now a coloured pill. Control bar is a floating glass pill of **round 44px icon buttons** — mic, camera, sound, captions, more — with visible labels dropped (every `aria-label` kept, so meaning is unchanged for assistive tech); captions promoted out of the overflow menu; End is the only red control and the only wide one, so it cannot be hit while reaching for mute |
 | 8 | Report | Hero score card at the top on the soft gradient — the one tinted surface in the report, since the score and summary are read first and everything below supports them. Ring up to 168px, the five category scores now colour-banded via a shared `scoreToneClass` so a 62 in the hero and a 6/10 on an answer are banded by the same rule, on translucent tiles. All section cards to `rounded-2xl`, titles onto `.type-card-title`. The per-answer rubric bars were already colour-coded |
 | 9 | Every remaining page | Systematic sweep across **46 files**: 82 bare `<Card>` to `rounded-2xl border-border/70` and 41 `CardTitle` onto `.type-card-title`. Covers resume, JD, practice, assessments, coding, coach, progress, roadmap, skills, settings, profile and all 8 admin pages. Only *bare* `<Card>` was touched — a Card already carrying a className was styled for its context and keeping its intent matters more than uniformity. The 51 inner `rounded-lg` panels are left at 12px on purpose: nesting a 16px radius inside a 16px card flattens the hierarchy, and `--radius` already lifted them from 10px |
+
+---
+
+# Coding problem bank → 120 original problems
+
+Two sessions of 60. All statements, examples, constraints and test data written
+here; no wording taken from any judge site. Titles are our own even where the
+underlying algorithmic idea is classic.
+
+| | |
+|---|---|
+| Total | **120 problems** — 50 Easy / 50 Medium / 20 Hard |
+| Test cases | **1205** — 240 sample (exactly 2 per problem) + 965 hidden (8–10 per problem) |
+| Topics | 20 |
+| Starter code | all 120 carry Python, JavaScript, Java and C++ |
+| Published | 120 |
+
+## Correctness by construction
+Every `expected` value in the seed data is **computed** by executing a Python
+reference solution against that case, never typed by hand. The generator lives
+in the scratchpad (`scratchpad/codegen/`) and is deliberately **not** committed,
+per the brief — only its output is. `common.py::verify()` refuses to emit a
+problem whose solution crashes, that has fewer than 10 cases, or that does not
+have exactly 2 samples, so a broken problem cannot reach the seed file.
+
+Re-running `build.py` and `supplement.py` at the end of the session rewrote both
+generated files and left `git status` completely clean — byte-identical output,
+which is what makes "every problem passed its reference solution" a checkable
+claim rather than an assertion.
+
+## Files
+| File | |
+|---|---|
+| `prisma/seed-data/coding-problems-generated.ts` | GENERATED — 115 problems |
+| `prisma/seed-data/coding-problems-extra-cases.ts` | GENERATED — 30 extra hidden cases for the 5 original slugs |
+| `prisma/seed-data/coding-problems.ts` | the 5 hand-written problems, preserved verbatim, composed with the above |
+
+The original 5 were **not** rewritten. They were topped up to 10 cases each and
+left otherwise untouched; rewriting working seeded content was outside the ask.
+
+## Idempotency (verified, not assumed)
+| | |
+|---|---|
+| before | `{ problems: 60, testCases: 605, nonSeed: 0 }` |
+| after seed | `{ problems: 120, testCases: 1205 }`, EASY=50 MEDIUM=50 HARD=20 |
+| after 2nd seed run | `{ problems: 120, testCases: 1205 }` — unchanged |
+| other data | users 9, interviews 11, questions 52 — all intact |
+
+## `/coding` at this size
+The list query already accepted a `page`, but **nothing rendered a way to reach
+one** — at 30 per page, 90 of the 120 problems were unreachable from the UI.
+Added Previous / "Page X of Y" / Next. `pageHref()` carries difficulty, topic
+and search across page changes; `filterHref()` keeps *dropping* the page, so
+changing a filter while deep in the list cannot land on an empty page.
+
+Verified against the dev DB: all → 120, Easy 50, Medium 50, Hard 20, page 4 of
+4 full, page 5 empty, `topic=Dynamic programming` → 19, Hard + DP → 6,
+`search=longest` → 8, `search=grid` → 4.
+
+## Run/Submit is still inert by design
+`CODE_EXECUTION_PROVIDER=disabled` ships as the default and no code is executed
+inside the Next.js server. Enabling it is an `.env` change only — see the final
+response for the exact keys.
