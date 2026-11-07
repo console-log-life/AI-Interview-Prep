@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CONNECT_TIMEOUT_MS, RESPONSE_TIMEOUT_MS } from "@/lib/ai/live/config";
 import { createOrchestratorState } from "@/lib/ai/live/orchestrator";
 import type { InterviewPlanInput } from "@/lib/ai/live/orchestrator-types";
 import { createLiveState, finalizedTurns, liveReducer } from "@/lib/ai/live/session";
@@ -53,6 +54,16 @@ const harness = vi.hoisted(() => {
   }
 
   return {
+    /**
+     * When set, `live.connect()` never resolves.
+     *
+     * Reproduces the one connect failure that reports nothing: a socket that
+     * opens and then stalls before setup. Released by `settleConnect`, so a
+     * test can also check what happens when the handshake lands *after* the
+     * client gave up on it.
+     */
+    hangConnect: false,
+    settleConnect: null as null | (() => void),
     sessions: [] as FakeSession[],
     callbacks: [] as Callbacks[],
     audio: [] as Array<{
@@ -65,6 +76,8 @@ const harness = vi.hoisted(() => {
       this.sessions.length = 0;
       this.callbacks.length = 0;
       this.audio.length = 0;
+      this.hangConnect = false;
+      this.settleConnect = null;
     },
   };
 });
@@ -86,6 +99,13 @@ vi.mock("@google/genai", () => ({
         harness.callbacks.push(callbacks);
         const session = new harness.FakeSession();
         harness.sessions.push(session);
+
+        if (harness.hangConnect) {
+          await new Promise<void>((resolve) => {
+            harness.settleConnect = resolve;
+          });
+        }
+
         callbacks.onopen();
         return session;
       },
@@ -523,6 +543,161 @@ describe("ending the interview stops everything", () => {
     expect(
       client.devTrace.some((entry) => entry.event === "steering-sent"),
     ).toBe(false);
+  });
+});
+
+/**
+ * No path may leave the room waiting forever.
+ *
+ * Two states had no timeout at all. CONNECTING, because `live.connect()` never
+ * gives up on its own; and PROCESSING, because releasing the turn is the one
+ * point where the interview depends on a reply the client cannot produce.
+ * Both displayed a plausible "Connecting..." or "Thinking..." indefinitely --
+ * the failure mode that looks exactly like a slow network until the interview
+ * slot has gone.
+ */
+describe("stuck states are bounded by a watchdog", () => {
+  /** Reaches the point where the model owes the candidate a reply. */
+  async function releaseTheTurn(client: unknown) {
+    const finalizing = (client as Finalizable).completeCandidateTurn();
+    await vi.advanceTimersByTimeAsync(3000);
+    await finalizing;
+  }
+
+  function errors(events: LiveEvent[]) {
+    return events.filter((event) => event.type === "ERROR");
+  }
+
+  /** A client whose handshake stalls before setup. */
+  function startStalled() {
+    harness.hangConnect = true;
+    const events: LiveEvent[] = [];
+    const client = new LiveInterviewClient({
+      grant: GRANT,
+      dispatch: (event) => events.push(event),
+      orchestrator: createOrchestratorState(PLAN),
+    });
+    return { client, events, starting: client.start(STREAM) };
+  }
+
+  it("fails the session when the interviewer never replies", async () => {
+    const { client, events } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({
+      serverContent: { inputTranscription: { text: "We used a write-through cache." } },
+    });
+
+    await releaseTheTurn(client);
+    expect(errors(events)).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(RESPONSE_TIMEOUT_MS + 1000);
+
+    // The room must leave PROCESSING, with something the candidate can act on.
+    const state = events.reduce(liveReducer, createLiveState());
+    expect(state.phase).toBe("FAILED");
+    expect(state.error).toMatch(/stopped responding/i);
+  });
+
+  it("stands down as soon as the interviewer speaks", async () => {
+    const { client, events } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({
+      serverContent: { inputTranscription: { text: "We used a queue." } },
+    });
+
+    await releaseTheTurn(client);
+    callbacks.onmessage({
+      serverContent: { modelTurn: { parts: [{ inlineData: { data: "AAAA" } }] } },
+    });
+
+    await vi.advanceTimersByTimeAsync(RESPONSE_TIMEOUT_MS + 1000);
+    expect(errors(events)).toHaveLength(0);
+  });
+
+  it("does not fail a session where the candidate is still talking", async () => {
+    // An answer longer than the response budget is a working interview, not a
+    // dead one: the candidate speaking is what the model is waiting on.
+    const { client, events } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({ serverContent: { inputTranscription: { text: "Well," } } });
+
+    await releaseTheTurn(client);
+    speak(40);
+
+    await vi.advanceTimersByTimeAsync(RESPONSE_TIMEOUT_MS + 1000);
+    expect(errors(events)).toHaveLength(0);
+  });
+
+  it("does not fail a session the candidate has ended", async () => {
+    const { client, events } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({ serverContent: { inputTranscription: { text: "Done." } } });
+
+    await releaseTheTurn(client);
+    await client.stop();
+
+    await vi.advanceTimersByTimeAsync(RESPONSE_TIMEOUT_MS + 1000);
+    expect(errors(events)).toHaveLength(0);
+  });
+
+  it("does not fail a session that is reconnecting", async () => {
+    const { client, events } = await startClient();
+    const { callbacks } = latest();
+    callbacks.onmessage({ setupComplete: {} });
+    callbacks.onmessage({ serverContent: { inputTranscription: { text: "Done." } } });
+
+    await releaseTheTurn(client);
+    // The turn it was timing belonged to the socket that just died.
+    callbacks.onclose();
+    await vi.advanceTimersByTimeAsync(RESPONSE_TIMEOUT_MS + 1000);
+
+    expect(errors(events)).toHaveLength(0);
+  });
+
+  it("gives up on a handshake that never completes", async () => {
+    const { events, starting } = startStalled();
+
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS + 1000);
+    await starting;
+
+    const state = events.reduce(liveReducer, createLiveState());
+    expect(state.phase).toBe("FAILED");
+    expect(state.error).toMatch(/could not connect/i);
+  });
+
+  it("closes a socket that opens after the handshake was abandoned", async () => {
+    const { starting } = startStalled();
+
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS + 1000);
+    await starting;
+
+    // The handshake lands late. Left open it would be a second socket against
+    // the same interview, burning quota with nothing reading it.
+    harness.settleConnect?.();
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(harness.sessions.at(-1)?.closed).toBe(true);
+  });
+
+  it("ignores a late handshake's callbacks", async () => {
+    const { events, starting } = startStalled();
+
+    await vi.advanceTimersByTimeAsync(CONNECT_TIMEOUT_MS + 1000);
+    await starting;
+
+    harness.settleConnect?.();
+    await vi.advanceTimersByTimeAsync(10);
+
+    const before = events.length;
+    latest().callbacks.onmessage({ setupComplete: {} });
+
+    // The generation was retired when the connect failed, so nothing from that
+    // socket may reach the interview.
+    expect(events).toHaveLength(before);
   });
 });
 

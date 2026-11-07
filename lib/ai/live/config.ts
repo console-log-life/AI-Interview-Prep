@@ -125,6 +125,35 @@ export const HESITATION_GRACE_MS = 8000;
  */
 export const PRE_ROLL_MS = 320;
 
+/**
+ * How long a handshake may take before it is called a failure.
+ *
+ * `live.connect()` has no timeout of its own, so a socket that opens and then
+ * never completes setup leaves the room on "Connecting…" for as long as the
+ * candidate is willing to stare at it. There is no recovery from that state
+ * and no message explaining it — the one failure mode that looks exactly like
+ * a slow network until the interview slot has gone.
+ *
+ * 20 s is well past any real handshake while still inside the patience of
+ * someone who has just clicked "Join".
+ */
+export const CONNECT_TIMEOUT_MS = 20_000;
+
+/**
+ * How long the interviewer may stay silent after being handed the turn.
+ *
+ * Releasing the turn is the one point where the interview depends on the model
+ * replying and nothing local can make it. If that reply never comes — a
+ * dropped generation, a quota refusal delivered as silence — the room sits in
+ * PROCESSING ("Thinking…") forever, and the candidate waits on a turn that is
+ * never coming.
+ *
+ * Deliberately generous: a long answer that needs real reasoning can take many
+ * seconds, and cutting a working interview short would be far worse than the
+ * wait. This is a last resort, not a latency budget.
+ */
+export const RESPONSE_TIMEOUT_MS = 45_000;
+
 export type PersonaTuning = {
   /**
    * How the interviewer introduces itself on screen.

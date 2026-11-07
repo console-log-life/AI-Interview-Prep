@@ -10,7 +10,9 @@ import {
 import { LiveAudioManager, encodeBase64 } from "@/lib/ai/live/audio";
 import {
   AUDIO_CHUNK_SAMPLES,
+  CONNECT_TIMEOUT_MS,
   HESITATION_GRACE_MS,
+  RESPONSE_TIMEOUT_MS,
   INPUT_MIME_TYPE,
   INPUT_SAMPLE_RATE,
   PRE_ROLL_MS,
@@ -192,6 +194,14 @@ export class LiveInterviewClient {
   private lastPartialTracedAtMs = 0;
   /** Releases the turn if a hesitation is never followed by an answer. */
   private hesitationTimer: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * Fails the session if the interviewer never takes the turn it was handed.
+   *
+   * Armed when the turn is released and cleared the moment the model shows any
+   * sign of life. Without it, a generation that never arrives leaves the room
+   * in PROCESSING with no timeout, no message and no way back.
+   */
+  private responseTimer: ReturnType<typeof setTimeout> | null = null;
   /** True between activityStart and activityEnd. */
   private activityOpen = false;
   /**
@@ -338,7 +348,7 @@ export class LiveInterviewClient {
     const isCurrent = () => generation === this.sessionGeneration;
 
     try {
-      this.session = await client.live.connect({
+      this.session = await this.withConnectTimeout(client.live.connect({
         model: grant.model,
         callbacks: {
           onopen: () => {
@@ -388,8 +398,17 @@ export class LiveInterviewClient {
             ? { handle: this.resumptionHandle }
             : {},
         },
-      });
+      }));
     } catch (error) {
+      /**
+       * Retire this generation before reporting the failure.
+       *
+       * The callbacks above captured `generation`, and nothing has bumped it
+       * since — so a handshake that fails slowly, or one abandoned by the
+       * timeout and delivered afterwards, would still read as current and
+       * drive a session the room has already given up on.
+       */
+      this.sessionGeneration += 1;
       this.trace("error", {
         note: `connect failed: ${error instanceof Error ? error.message : "unknown"}`,
       });
@@ -398,6 +417,85 @@ export class LiveInterviewClient {
         message:
           "Could not connect to the voice service. You can retry, or continue with the text interview.",
       });
+    }
+  }
+
+  /**
+   * Bounds the handshake.
+   *
+   * `live.connect()` never gives up on its own, so a socket that opens and
+   * then stalls before setup leaves the room on "Connecting…" indefinitely —
+   * no timeout, no message, no way back. Failing here routes into the existing
+   * connect-failure path, which reports a usable error and offers a retry.
+   */
+  private async withConnectTimeout(pending: Promise<Session>): Promise<Session> {
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const expiry = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        reject(new Error("The voice service did not finish connecting in time."));
+      }, CONNECT_TIMEOUT_MS);
+    });
+
+    /**
+     * A handshake that lands after we gave up belongs to nobody.
+     *
+     * Left open it would keep a second socket alive against the same
+     * interview, consuming quota and streaming audio nothing is reading. This
+     * is attached before the race so the late resolution cannot be missed.
+     */
+    void pending
+      .then((late) => {
+        if (!timedOut) return;
+        try {
+          late.close();
+        } catch {
+          // Already gone, which is the expected case.
+        }
+      })
+      .catch(() => undefined);
+
+    try {
+      return await Promise.race([pending, expiry]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Arms the watchdog that catches an interviewer which never replies.
+   *
+   * Scoped to the generation and turn that armed it: a reconnect or a barge-in
+   * makes the wait meaningless, and firing anyway would fail a session that
+   * had already recovered.
+   */
+  private armResponseWatchdog(): void {
+    this.clearResponseWatchdog();
+    const generation = this.sessionGeneration;
+    const turnId = this.turnId;
+
+    this.responseTimer = setTimeout(() => {
+      this.responseTimer = null;
+      if (generation !== this.sessionGeneration || turnId !== this.turnId) return;
+      if (this.closedByUser || this.reconnectPending) return;
+
+      this.trace("error", {
+        note: `no response within ${RESPONSE_TIMEOUT_MS}ms of releasing the turn`,
+      });
+      this.dispatch({
+        type: "ERROR",
+        message:
+          "The interviewer stopped responding. You can retry, or continue with the text interview.",
+      });
+    }, RESPONSE_TIMEOUT_MS);
+  }
+
+  private clearResponseWatchdog(): void {
+    if (this.responseTimer) {
+      clearTimeout(this.responseTimer);
+      this.responseTimer = null;
     }
   }
 
@@ -505,6 +603,9 @@ export class LiveInterviewClient {
         this.turnId += 1;
         this.finalizing = false;
         this.holding = false;
+        // The model's turn was cut off, so it owes no reply to the turn the
+        // watchdog is timing.
+        this.clearResponseWatchdog();
         this.orchestrator = orchestratorReducer(this.orchestrator, {
           type: "INTERRUPTION",
         });
@@ -612,6 +713,8 @@ export class LiveInterviewClient {
         // covers the case where a hold provoked no `interrupted` at all —
         // otherwise a stale flag would swallow the next real barge-in.
         this.selfInterruptExpected = false;
+        // Audio the candidate will hear is the only proof that matters.
+        this.clearResponseWatchdog();
         this.dispatch({ type: "AI_TURN_STARTED" });
         this.audio?.enqueue(data);
       }
@@ -1053,6 +1156,9 @@ export class LiveInterviewClient {
    */
   private releaseTurn(): void {
     this.sendActivityEnd();
+    // From here the interview depends on the model replying, and nothing local
+    // can make it. See `responseTimer`.
+    this.armResponseWatchdog();
     this.trace("turn-released", {});
   }
 
@@ -1143,6 +1249,15 @@ export class LiveInterviewClient {
         clearTimeout(this.hesitationTimer);
         this.hesitationTimer = null;
       }
+      /**
+       * The candidate speaking is proof the interview is alive.
+       *
+       * Disarmed rather than left to the generation check, because an answer
+       * longer than the response budget would otherwise fail a session that
+       * is working perfectly — the candidate is talking, which is exactly what
+       * the interviewer was waiting for.
+       */
+      this.clearResponseWatchdog();
       this.turnStartedAtMs = Date.now();
       this.pausesInTurn = [];
       this.pauseStartedAtMs = null;
@@ -1317,6 +1432,9 @@ export class LiveInterviewClient {
       clearTimeout(this.hesitationTimer);
       this.hesitationTimer = null;
     }
+    // The turn it was waiting on belonged to the dead socket. Leaving it armed
+    // would fail a session that is in the middle of recovering.
+    this.clearResponseWatchdog();
 
     /**
      * Forget that the candidate's activity window was ever open.
@@ -1394,6 +1512,7 @@ export class LiveInterviewClient {
       clearTimeout(this.hesitationTimer);
       this.hesitationTimer = null;
     }
+    this.clearResponseWatchdog();
 
     try {
       this.session?.close();
