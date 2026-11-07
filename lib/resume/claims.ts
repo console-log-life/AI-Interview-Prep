@@ -5,6 +5,7 @@ import { getAIService } from "@/lib/ai";
 import { setAiUsageUser } from "@/lib/ai/observability";
 import { NotFoundError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db/prisma";
+import { filterGroundedClaims } from "@/lib/resume/grounding";
 
 /**
  * Resume claim extraction and verification.
@@ -32,7 +33,29 @@ export async function extractClaims(userId: string, resumeId: string) {
 
   setAiUsageUser(userId);
   const ai = getAIService();
-  const claims = await ai.extractResumeClaims(resume.extractedText);
+  const extracted = await ai.extractResumeClaims(resume.extractedText);
+
+  /**
+   * Only what the resume actually says gets stored.
+   *
+   * The prompt forbids inference, but a claim becomes probe questions the
+   * interviewer asks as fact -- so an invented "reduced latency by 40%" is not
+   * a stray table row, it is the candidate being asked how they measured a
+   * number they never wrote. See `lib/resume/grounding.ts`.
+   */
+  const { kept: claims, dropped } = filterGroundedClaims(
+    extracted,
+    resume.extractedText,
+  );
+
+  if (dropped.length > 0) {
+    // Recorded rather than swallowed: a silent filter would hide a degrading
+    // prompt or model behind a quietly shorter list of claims.
+    console.warn(
+      `[resume] dropped ${dropped.length} ungrounded claim(s) for resume ${resumeId}:`,
+      dropped.map((entry) => entry.result.reason).join(", "),
+    );
+  }
 
   // Replace wholesale — re-extraction should not leave stale claims behind.
   await prisma.resumeClaim.deleteMany({ where: { resumeId } });
