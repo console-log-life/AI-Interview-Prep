@@ -28,6 +28,7 @@ import {
   type RubricNotes,
   type RubricScores,
 } from "@/lib/interviews/rubric";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -232,6 +233,18 @@ function ListSection({
   );
 }
 
+/**
+ * Colour band for a 0-100 score.
+ *
+ * Coarse on purpose, and the same three bands the per-answer rubric uses, so a
+ * 62 in the hero and a 6/10 on an answer are not coloured by different rules.
+ */
+function scoreToneClass(score: number): string {
+  if (score >= 70) return "text-success";
+  if (score >= 40) return "text-warning";
+  return "text-destructive";
+}
+
 export function InterviewReportView({
   report,
   evaluations,
@@ -251,40 +264,55 @@ export function InterviewReportView({
 
   return (
     <div className="space-y-6">
-      {/* Headline */}
-      <Card>
-        <CardContent className="grid gap-8 p-6 lg:grid-cols-[auto_1fr]">
-          <div className="flex justify-center">
-            <ScoreRing score={report.overallScore} label="Overall" size={150} />
-          </div>
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-semibold">Summary</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
-                {report.summary}
-              </p>
+      {/*
+        Hero score card.
+        The one place in the report that gets a tinted surface: the overall
+        score and the summary are what a candidate reads first, and everything
+        below is detail supporting them.
+      */}
+      <Card className="overflow-hidden rounded-2xl border-primary/20 shadow-md">
+        <div className="gradient-hero">
+          <CardContent className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[auto_1fr]">
+            <div className="flex justify-center">
+              <ScoreRing score={report.overallScore} label="Overall" size={168} />
             </div>
-            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {radarData.map((entry) => (
-                <div key={entry.category} className="rounded-lg border p-3">
-                  <dt className="text-xs text-muted-foreground">
-                    {entry.category}
-                  </dt>
-                  <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-                    {entry.score}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </CardContent>
+            <div className="space-y-5">
+              <div>
+                <h2 className="eyebrow">Summary</h2>
+                <p className="mt-2 text-pretty text-body leading-relaxed text-foreground/90">
+                  {report.summary}
+                </p>
+              </div>
+              <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+                {radarData.map((entry) => (
+                  <div
+                    key={entry.category}
+                    className="rounded-xl border bg-card/80 p-3 backdrop-blur-sm"
+                  >
+                    <dt className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+                      {entry.category}
+                    </dt>
+                    <dd
+                      className={cn(
+                        "mt-1 font-display text-2xl font-bold tabular-nums",
+                        scoreToneClass(entry.score),
+                      )}
+                    >
+                      {entry.score}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </CardContent>
+        </div>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         {/* Radar */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Category profile</CardTitle>
+            <CardTitle className="type-card-title">Category profile</CardTitle>
             <CardDescription>Where you are strong and weak.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -316,9 +344,9 @@ export function InterviewReportView({
         </Card>
 
         {/* Qualitative */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">What stood out</CardTitle>
+            <CardTitle className="type-card-title">What stood out</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <ListSection
@@ -357,9 +385,9 @@ export function InterviewReportView({
 
       {/* Suggested practice */}
       {report.suggestedTopics.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Practise these topics</CardTitle>
+            <CardTitle className="type-card-title">Practise these topics</CardTitle>
             <CardDescription>
               Drawn from the specific gaps in your answers.
             </CardDescription>
@@ -385,9 +413,9 @@ export function InterviewReportView({
       )}
 
       {/* Per-question */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Answer-by-answer review</CardTitle>
+          <CardTitle className="type-card-title">Answer-by-answer review</CardTitle>
           <CardDescription>
             The full transcript with the grader&apos;s notes on each answer.
           </CardDescription>
