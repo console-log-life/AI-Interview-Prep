@@ -1,5 +1,5 @@
 import "server-only";
-import type { Interview, InterviewMessage } from "@prisma/client";
+import type { Interview, InterviewMessage, InterviewReport } from "@prisma/client";
 
 import { getAIService } from "@/lib/ai";
 import { AIError, ConflictError, NotFoundError } from "@/lib/api/errors";
@@ -616,7 +616,21 @@ export async function completeInterview(userId: string, interviewId: string) {
     turns,
   });
 
-  const report = await prisma.interviewReport.create({
+  /**
+   * Written defensively because two completions can race.
+   *
+   * `completeInterview` returns early when a report already exists, but the AI
+   * call between that check and this write takes seconds -- long enough for a
+   * second request (two tabs, or "Generate report" pressed on one while the
+   * other is still running) to pass the same check. `interviewId` is unique,
+   * so the loser's insert fails, and that surfaced to the candidate as "we
+   * couldn't generate your report" on a report that had just been created.
+   *
+   * The loser returns the winner's row and skips the follow-on writes below,
+   * which the winner owns -- running them twice would double-count the same
+   * interview into topic performance and achievements.
+   */
+  const report = await createReportOnce({
     data: {
       interviewId,
       overallScore: payload.overallScore,
@@ -640,6 +654,7 @@ export async function completeInterview(userId: string, interviewId: string) {
       modelUsed: ai.model,
     },
   });
+  if (report.alreadyExisted) return report.row;
 
   // Per-answer scores are 0-10; topic performance is stored 0-100.
   await recordTopicPerformance(
@@ -654,7 +669,36 @@ export async function completeInterview(userId: string, interviewId: string) {
   await evaluateAchievements(userId);
   await refreshRecommendations(userId);
 
-  return report;
+  return report.row;
+}
+
+/**
+ * Inserts the report, tolerating a concurrent insert of the same one.
+ *
+ * Separated out so the race handling does not obscure the mapping above, and
+ * so the caller is forced to decide what to do about a duplicate rather than
+ * silently re-running the follow-on writes.
+ */
+async function createReportOnce(args: {
+  data: Parameters<typeof prisma.interviewReport.create>[0]["data"];
+}): Promise<{ row: InterviewReport; alreadyExisted: boolean }> {
+  try {
+    return { row: await prisma.interviewReport.create(args), alreadyExisted: false };
+  } catch (error) {
+    // P2002 is the unique violation on `interviewId`. Anything else is a real
+    // failure and must not be reported as a successful completion.
+    const duplicate =
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: unknown }).code === "P2002";
+    if (!duplicate) throw error;
+
+    const winner = await prisma.interviewReport.findUnique({
+      where: { interviewId: args.data.interviewId as string },
+    });
+    if (!winner) throw error;
+    return { row: winner, alreadyExisted: true };
+  }
 }
 
 /** Everything the live interview screen needs to rehydrate after a refresh. */
