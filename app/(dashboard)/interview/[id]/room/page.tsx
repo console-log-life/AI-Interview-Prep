@@ -62,6 +62,7 @@ export default async function InterviewRoomPage({
       interviewType={interview.type}
       targetRole={interview.targetRole}
       durationMin={interview.durationMin}
+      plannedQuestions={interview.plannedQuestions}
       wantVideo={query.video !== "off"}
       interviewerName={tuning.displayName}
       interviewerTitle={tuning.title}

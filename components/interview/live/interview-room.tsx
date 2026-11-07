@@ -23,7 +23,6 @@ import {
   PhaseStrip,
 } from "@/components/interview/live/interview-context";
 import { InterviewerPresence } from "@/components/interview/live/interviewer-presence";
-import { LiveTranscript } from "@/components/interview/live/live-transcript";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLiveInterview } from "@/hooks/use-live-interview";
 import { formatClock, interviewClock } from "@/lib/ai/live/clock";
+import { presenceFor } from "@/lib/ai/live/presentation";
 import {
   CAMERA_STATUS_DETAIL,
   CAMERA_STATUS_LABEL,
@@ -73,6 +73,7 @@ export function InterviewRoom({
   interviewType,
   targetRole,
   durationMin,
+  plannedQuestions,
   wantVideo,
   interviewerName,
   interviewerTitle,
@@ -81,6 +82,15 @@ export function InterviewRoom({
   interviewType: string;
   targetRole: string;
   durationMin: number;
+  /**
+   * Questions this interview set out to ask.
+   *
+   * The number the candidate chose at setup, so progress against it is a real
+   * plan rather than an invented total. The orchestrator may still close early
+   * or run a question over, which is why the label says "of N planned" instead
+   * of promising a count.
+   */
+  plannedQuestions: number;
   wantVideo: boolean;
   interviewerName: string;
   interviewerTitle: string;
@@ -89,7 +99,19 @@ export function InterviewRoom({
   const [endOpen, setEndOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [speakerMuted, setSpeakerMuted] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(true);
+  /**
+   * Captions, off by default.
+   *
+   * A real interview does not put the candidate's own words on screen as they
+   * speak, and watching your sentences appear turns an interview into a chat
+   * window. The transcript is still recorded, still flushed to the database and
+   * still shown in full on the report — only this display is gone.
+   *
+   * When on, it shows the interviewer's current question and nothing else.
+   * Never the candidate's live speech: that is the thing being fixed, so it is
+   * not reachable from any toggle.
+   */
+  const [captionsOn, setCaptionsOn] = useState(false);
 
   // Ticks the clock. The anchor is `liveStartedAtMs` from the grant — when the
   // candidate actually joined — not the interview row's creation time, which
@@ -151,6 +173,15 @@ export function InterviewRoom({
   const cameraLive = cameraIsRendering(cameraState);
   const candidateSpeaking = state.phase === "CANDIDATE_SPEAKING";
   const connected = state.connection === "connected";
+  const presence = presenceFor(state.phase);
+  /**
+   * Answers completed, from the reducer's own counter.
+   *
+   * `turnsCompleted` only increments when an interviewer turn actually
+   * finished playing, so it counts exchanges the candidate really had rather
+   * than questions that were merely generated.
+   */
+  const answered = state.turnsCompleted;
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] flex-col gap-3">
@@ -200,6 +231,34 @@ export function InterviewRoom({
             />
             {connectionLabel(state.connection)}
           </span>
+          {/*
+            What the interviewer is doing, in one word.
+            Taken from the same `presenceFor` map the presence tile uses, so the
+            header and the tile can never disagree — and from the session state
+            machine, so neither can disagree with what is actually happening.
+          */}
+          <span
+            className={cn(
+              "flex items-center gap-1.5 font-medium",
+              presence.tone === "speaking" && "text-info",
+              presence.tone === "listening" && "text-success",
+              presence.tone === "thinking" && "text-warning",
+              presence.tone === "problem" && "text-destructive",
+            )}
+            aria-live="polite"
+          >
+            <span className="sr-only">Interviewer status: </span>
+            {presence.label}
+          </span>
+
+          {/* Against the plan the candidate chose, not an invented total. */}
+          {answered > 0 && (
+            <span className="hidden tabular-nums text-muted-foreground sm:inline">
+              <span className="sr-only">Progress: </span>
+              Q{Math.min(answered + 1, plannedQuestions)} of {plannedQuestions}
+            </span>
+          )}
+
           {/* Nothing is shown until the clock has a real anchor — a countdown
               from an unknown start is worse than no countdown. */}
           <span className="tabular-nums text-muted-foreground">
@@ -267,14 +326,9 @@ export function InterviewRoom({
         </Alert>
       )}
 
-      {/* Stage: two people, then captions. */}
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 gap-3",
-          showTranscript ? "xl:grid-cols-[minmax(0,1fr)_320px]" : "",
-        )}
-      >
-        <div className="flex min-w-0 flex-col gap-3">
+      {/* Stage: two people, and nothing competing with them. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="grid gap-3 md:grid-cols-2">
             <InterviewerPresence
               phase={state.phase}
@@ -343,20 +397,16 @@ export function InterviewRoom({
             </div>
           </div>
 
-          <CurrentQuestion
-            question={interview.question}
-            isFollowUp={interview.isFollowUp}
-            topic={interview.topic}
-            dimmed={candidateSpeaking}
-          />
+          {/* Captions: the interviewer's question only, and only on request. */}
+          {captionsOn && (
+            <CurrentQuestion
+              question={interview.question}
+              isFollowUp={interview.isFollowUp}
+              topic={interview.topic}
+              dimmed={candidateSpeaking}
+            />
+          )}
         </div>
-
-        {showTranscript && (
-          <LiveTranscript
-            segments={state.transcript}
-            className="max-h-[420px] xl:max-h-none"
-          />
-        )}
       </div>
 
       {/* Controls */}
@@ -444,9 +494,9 @@ export function InterviewRoom({
             />
             <DeviceRow label="Speaker" ok={!speakerMuted} detail={speakerMuted ? "Muted" : "Working"} />
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setShowTranscript((value) => !value)}>
+            <DropdownMenuItem onSelect={() => setCaptionsOn((value) => !value)}>
               <Captions aria-hidden="true" />
-              {showTranscript ? "Hide transcript" : "Show transcript"}
+              {captionsOn ? "Turn captions off" : "Turn captions on"}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => router.push(`/interview/${interviewId}/check`)}
