@@ -32,7 +32,7 @@ export function JobReadinessCard({
   const hasEvidence = readiness.covered.length > 0 || readiness.gaps.length > 0;
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>

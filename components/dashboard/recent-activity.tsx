@@ -45,7 +45,7 @@ function ScorePill({ score }: { score: number }) {
 
 export function RecentInterviews({ interviews }: { interviews: InterviewRow[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Recent interviews</CardTitle>
         <CardDescription>Your last few mock interview sessions.</CardDescription>
@@ -98,7 +98,7 @@ export function RecentInterviews({ interviews }: { interviews: InterviewRow[] })
 
 export function RecentAssessments({ attempts }: { attempts: AttemptRow[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Recent assessments</CardTitle>
         <CardDescription>Your last few completed attempts.</CardDescription>
@@ -143,7 +143,7 @@ export function RecentAssessments({ attempts }: { attempts: AttemptRow[] }) {
 
 export function RecentCoding({ submissions }: { submissions: SubmissionRow[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Coding performance</CardTitle>
         <CardDescription>Your most recent submissions.</CardDescription>

@@ -45,7 +45,7 @@ const SERIES = [
  */
 export function ProgressChart({ data }: { data: SnapshotPoint[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Progress over time</CardTitle>
         <CardDescription>

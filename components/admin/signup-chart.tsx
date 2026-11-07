@@ -26,9 +26,9 @@ export function SignupChart({
   const total = data.reduce((sum, point) => sum + point.count, 0);
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
-        <CardTitle className="text-base">Signups (last 30 days)</CardTitle>
+        <CardTitle className="type-card-title">Signups (last 30 days)</CardTitle>
         <CardDescription>
           {total} new account{total === 1 ? "" : "s"} in this window.
         </CardDescription>

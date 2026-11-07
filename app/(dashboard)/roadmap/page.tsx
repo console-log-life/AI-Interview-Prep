@@ -78,7 +78,7 @@ async function RoadmapContent({ userId }: { userId: string }) {
         }))}
       />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

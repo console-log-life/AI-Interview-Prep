@@ -56,7 +56,7 @@ export function JdResult(props: JdResultProps) {
   return (
     <div className="space-y-6">
       {/* Headline */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardContent className="grid gap-6 p-6 md:grid-cols-[auto_1fr] md:items-center">
           <ScoreRing score={props.matchScore} label="Preparation match" />
           <div className="space-y-3">
@@ -99,9 +99,9 @@ export function JdResult(props: JdResultProps) {
       </Card>
 
       {/* Skill-by-skill */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Skill match</CardTitle>
+          <CardTitle className="type-card-title">Skill match</CardTitle>
           <CardDescription>
             Every requirement rated against what you have evidence for.
           </CardDescription>
@@ -171,7 +171,7 @@ export function JdResult(props: JdResultProps) {
 
       {/* Roadmap */}
       {props.roadmap.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -211,9 +211,9 @@ export function JdResult(props: JdResultProps) {
 
       {/* Extracted detail */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle className="type-card-title">
               What they&apos;re asking for
             </CardTitle>
           </CardHeader>
@@ -253,7 +253,7 @@ export function JdResult(props: JdResultProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ListChecks className="h-4 w-4" aria-hidden="true" />

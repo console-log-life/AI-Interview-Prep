@@ -95,9 +95,9 @@ export default async function AdminOverviewPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Popular categories</CardTitle>
+            <CardTitle className="type-card-title">Popular categories</CardTitle>
             <CardDescription>
               By attempts, with the average score students achieved.
             </CardDescription>
@@ -141,9 +141,9 @@ export default async function AdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Popular target roles</CardTitle>
+            <CardTitle className="type-card-title">Popular target roles</CardTitle>
             <CardDescription>
               What students are actually preparing for.
             </CardDescription>
@@ -174,9 +174,9 @@ export default async function AdminOverviewPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Content library</CardTitle>
+          <CardTitle className="type-card-title">Content library</CardTitle>
           <CardDescription>What students can currently practise.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">

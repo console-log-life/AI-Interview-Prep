@@ -141,9 +141,9 @@ export function ResumeManager({
   return (
     <div className="space-y-6">
       {/* Uploader */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Upload a resume</CardTitle>
+          <CardTitle className="type-card-title">Upload a resume</CardTitle>
           <CardDescription>
             PDF only, up to 5 MB. Text-based PDFs work — scanned images
             don&apos;t, because there is no text to read.
@@ -219,9 +219,9 @@ export function ResumeManager({
           description="With a resume on file, mock interviews ask about your actual projects instead of hypothetical ones."
         />
       ) : (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Your resumes</CardTitle>
+            <CardTitle className="type-card-title">Your resumes</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y">

@@ -108,7 +108,7 @@ export default async function CoachPage({
 
         <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-base">Past conversations</CardTitle>
+            <CardTitle className="type-card-title">Past conversations</CardTitle>
             <CardDescription>Saved to your account.</CardDescription>
           </CardHeader>
           <CardContent>

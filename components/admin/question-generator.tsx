@@ -112,7 +112,7 @@ export function QuestionGenerator({ aiEnabled }: { aiEnabled: boolean }) {
     aiEnabled && !generating && topic.trim().length >= 2 && types.length > 0;
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Generate questions</CardTitle>
         <CardDescription>

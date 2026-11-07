@@ -66,7 +66,7 @@ export default async function ContentStudioPage() {
 
       <QuestionGenerator aiEnabled={aiAvailable()} />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
             <div>

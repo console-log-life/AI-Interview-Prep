@@ -209,7 +209,7 @@ export function AssessmentRunner({
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Questions</CardTitle>
             </CardHeader>

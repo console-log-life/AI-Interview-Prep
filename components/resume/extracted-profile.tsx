@@ -134,9 +134,9 @@ export function ExtractedProfile({
         </Alert>
       )}
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Basics</CardTitle>
+          <CardTitle className="type-card-title">Basics</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -192,9 +192,9 @@ export function ExtractedProfile({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Skills and technologies</CardTitle>
+          <CardTitle className="type-card-title">Skills and technologies</CardTitle>
           <CardDescription>
             These feed straight into your interview questions.
           </CardDescription>
@@ -240,9 +240,9 @@ export function ExtractedProfile({
       </Card>
 
       {values.education.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Education</CardTitle>
+            <CardTitle className="type-card-title">Education</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {values.education.map((entry, index) => (
@@ -305,9 +305,9 @@ export function ExtractedProfile({
       )}
 
       {values.projects.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Projects</CardTitle>
+            <CardTitle className="type-card-title">Projects</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {values.projects.map((project, index) => (
@@ -356,9 +356,9 @@ export function ExtractedProfile({
       )}
 
       {(values.strengths.length > 0 || values.gaps.length > 0) && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle className="type-card-title">
               How this resume reads to a recruiter
             </CardTitle>
             <CardDescription>

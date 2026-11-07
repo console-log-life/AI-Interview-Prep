@@ -132,7 +132,7 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
   return (
     <div className="space-y-6">
       {/* Headline */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardContent className="grid gap-6 p-6 md:grid-cols-[auto_1fr] md:items-center">
           <ScoreRing score={result.percentage} label="Score" />
           <div className="space-y-4">
@@ -190,9 +190,9 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
 
       {/* Breakdown */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">By topic</CardTitle>
+            <CardTitle className="type-card-title">By topic</CardTitle>
             <CardDescription>Where the marks were won and lost.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -213,9 +213,9 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">By difficulty</CardTitle>
+            <CardTitle className="type-card-title">By difficulty</CardTitle>
             <CardDescription>
               Whether the gap is fundamentals or application.
             </CardDescription>
@@ -241,9 +241,9 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
 
       {/* What to do next */}
       {weakest.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Recommended practice</CardTitle>
+            <CardTitle className="type-card-title">Recommended practice</CardTitle>
             <CardDescription>
               Based on the topics you scored under 60% on.
             </CardDescription>
@@ -279,9 +279,9 @@ export function AssessmentResult({ result }: AssessmentResultProps) {
       )}
 
       {/* Full review */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Review every question</CardTitle>
+          <CardTitle className="type-card-title">Review every question</CardTitle>
           <CardDescription>
             Correct answers and explanations — released only now that the
             attempt is submitted.

@@ -19,7 +19,7 @@ type Topic = {
 
 export function SkillBreakdown({ topics }: { topics: Topic[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Strongest topics</CardTitle>
         <CardDescription>
@@ -55,7 +55,7 @@ export function SkillBreakdown({ topics }: { topics: Topic[] }) {
 
 export function WeakAreas({ topics }: { topics: Topic[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Weak areas</CardTitle>
         <CardDescription>

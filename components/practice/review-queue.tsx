@@ -105,7 +105,7 @@ export function ReviewQueue({
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

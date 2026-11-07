@@ -35,7 +35,7 @@ async function SkillsContent({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <CardTitle>Skill ledger</CardTitle>
           <CardDescription>

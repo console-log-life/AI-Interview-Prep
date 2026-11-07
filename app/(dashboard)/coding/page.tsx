@@ -149,9 +149,9 @@ export default async function CodingPage({
         </section>
 
         <aside>
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Recent submissions</CardTitle>
+              <CardTitle className="type-card-title">Recent submissions</CardTitle>
             </CardHeader>
             <CardContent>
               {recent.length === 0 ? (

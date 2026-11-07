@@ -42,7 +42,7 @@ export function RecommendationsCard({
   recommendations: Recommendation[];
 }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Recommended next</CardTitle>
         <CardDescription>

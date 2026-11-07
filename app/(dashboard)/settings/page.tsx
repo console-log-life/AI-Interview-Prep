@@ -74,9 +74,9 @@ export default async function SettingsPage() {
         description="Your account, and what this deployment has configured."
       />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Account</CardTitle>
+          <CardTitle className="type-card-title">Account</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-3">
@@ -110,9 +110,9 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Platform integrations</CardTitle>
+          <CardTitle className="type-card-title">Platform integrations</CardTitle>
           <CardDescription>
             What this deployment has wired up. Secrets are never shown here —
             only whether a provider is configured.
@@ -153,7 +153,7 @@ export default async function SettingsPage() {
 
       <ChangePasswordForm />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />

@@ -42,7 +42,7 @@ export function ReadinessV2Card({ readiness, streak }: ReadinessV2CardProps) {
   const hasEvidence = readiness.pillars.some((pillar) => pillar.count > 0);
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>

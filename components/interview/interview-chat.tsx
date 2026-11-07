@@ -173,7 +173,7 @@ export function InterviewChat({
 
       {/* Composer / completion */}
       {finished ? (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
             <CheckCircle2 className="h-10 w-10 text-success" aria-hidden="true" />
             <div>
@@ -192,7 +192,7 @@ export function InterviewChat({
         </Card>
       ) : (
         <form onSubmit={handleSubmit} className="sticky bottom-0 pt-2">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardContent className="space-y-3 p-4">
               <label htmlFor="answer" className="sr-only">
                 Your answer

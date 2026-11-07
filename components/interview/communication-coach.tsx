@@ -90,7 +90,7 @@ export function CommunicationCoach({
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mic className="h-5 w-5" aria-hidden="true" />

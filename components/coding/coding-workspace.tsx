@@ -219,7 +219,7 @@ export function CodingWorkspace({
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Left: problem statement */}
       <div className="space-y-4">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <DifficultyBadge difficulty={problem.difficulty} />
@@ -303,9 +303,9 @@ export function CodingWorkspace({
         </Card>
 
         {submissions.length > 0 && (
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Your submissions</CardTitle>
+              <CardTitle className="type-card-title">Your submissions</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="divide-y">
@@ -408,7 +408,7 @@ export function CodingWorkspace({
           </Alert>
         )}
 
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardContent className="p-4">
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList>

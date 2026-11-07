@@ -87,9 +87,9 @@ export default async function ProgressPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">Readiness</CardTitle>
+            <CardTitle className="type-card-title">Readiness</CardTitle>
             <CardDescription>
               Weighted across interviews, assessments and coding.
             </CardDescription>
@@ -169,7 +169,7 @@ export default async function ProgressPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <Target className="h-4 w-4 text-destructive" aria-hidden="true" />
@@ -199,7 +199,7 @@ export default async function ProgressPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <Award className="h-4 w-4 text-success" aria-hidden="true" />
@@ -243,9 +243,9 @@ export default async function ProgressPage() {
         </TabsList>
 
         <TabsContent value="topics">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Every topic you&apos;ve practised</CardTitle>
+              <CardTitle className="type-card-title">Every topic you&apos;ve practised</CardTitle>
               <CardDescription>
                 Sorted weakest first — that&apos;s where practice pays off most.
               </CardDescription>

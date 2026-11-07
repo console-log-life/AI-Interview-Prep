@@ -81,9 +81,9 @@ export default async function AdminAnalyticsPage() {
       <SignupChart data={signups} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
-            <CardTitle className="text-base">
+            <CardTitle className="type-card-title">
               Hardest topics platform-wide
             </CardTitle>
             <CardDescription>
@@ -111,9 +111,9 @@ export default async function AdminAnalyticsPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Category engagement</CardTitle>
+              <CardTitle className="type-card-title">Category engagement</CardTitle>
             </CardHeader>
             <CardContent>
               {categories.length === 0 ? (
@@ -141,9 +141,9 @@ export default async function AdminAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Target roles</CardTitle>
+              <CardTitle className="type-card-title">Target roles</CardTitle>
             </CardHeader>
             <CardContent>
               {roles.length === 0 ? (

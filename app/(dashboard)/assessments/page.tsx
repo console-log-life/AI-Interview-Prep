@@ -90,7 +90,7 @@ export default async function AssessmentsPage({
                       <CategoryBadge category={assessment.category} />
                       <DifficultyBadge difficulty={assessment.difficulty} />
                     </div>
-                    <CardTitle className="text-base">
+                    <CardTitle className="type-card-title">
                       {assessment.title}
                     </CardTitle>
                     {assessment.description && (
@@ -156,9 +156,9 @@ export default async function AssessmentsPage({
         <aside className="space-y-6">
           <PracticeGenerator defaultCategory={parsed.category} />
 
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
-              <CardTitle className="text-base">Your recent attempts</CardTitle>
+              <CardTitle className="type-card-title">Your recent attempts</CardTitle>
             </CardHeader>
             <CardContent>
               {recentAttempts.length === 0 ? (

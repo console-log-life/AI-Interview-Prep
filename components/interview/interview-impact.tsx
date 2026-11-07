@@ -46,7 +46,7 @@ export function InterviewImpact({
     skills.length === 0 && mistakes.length === 0 && claims.length === 0;
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>

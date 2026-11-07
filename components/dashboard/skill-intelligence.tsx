@@ -32,7 +32,7 @@ export function SkillIntelligence({
   const untouched = skills.filter((skill) => skill.observations === 0);
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -160,7 +160,7 @@ export function SkillFocusList({
   tone: "weak" | "strong";
 }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

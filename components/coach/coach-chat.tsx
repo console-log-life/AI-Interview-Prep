@@ -116,7 +116,7 @@ export function CoachChat({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardContent className="space-y-4 p-4 sm:p-6">
           {messages.length === 0 && !sending ? (
             <div className="py-6 text-center">

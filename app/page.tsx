@@ -264,7 +264,7 @@ export default function LandingPage() {
                         aria-hidden="true"
                       />
                     </div>
-                    <CardTitle className="text-base">{feature.title}</CardTitle>
+                    <CardTitle className="type-card-title">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
@@ -301,7 +301,7 @@ export default function LandingPage() {
                       >
                         {item.step}
                       </span>
-                      <CardTitle className="text-base">{item.title}</CardTitle>
+                      <CardTitle className="type-card-title">{item.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
@@ -337,7 +337,7 @@ export default function LandingPage() {
                         aria-hidden="true"
                       />
                     </div>
-                    <CardTitle className="text-base">{module.title}</CardTitle>
+                    <CardTitle className="type-card-title">{module.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2.5">

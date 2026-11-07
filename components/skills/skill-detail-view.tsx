@@ -40,9 +40,9 @@ export function SkillDetailView({ detail }: { detail: SkillDetail }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Current standing</CardTitle>
+            <CardTitle className="type-card-title">Current standing</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {detail.hasEvidence ? (
@@ -90,7 +90,7 @@ export function SkillDetailView({ detail }: { detail: SkillDetail }) {
         </Card>
 
         <div className="space-y-6 lg:col-span-2">
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardHeader>
               <CardTitle>Subtopics</CardTitle>
               <CardDescription>
@@ -152,7 +152,7 @@ export function SkillDetailView({ detail }: { detail: SkillDetail }) {
           </Card>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -193,9 +193,9 @@ export function SkillDetailView({ detail }: { detail: SkillDetail }) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader>
-                <CardTitle className="text-base">Recent evidence</CardTitle>
+                <CardTitle className="type-card-title">Recent evidence</CardTitle>
               </CardHeader>
               <CardContent>
                 {detail.recentEvidence.length === 0 ? (
@@ -225,7 +225,7 @@ export function SkillDetailView({ detail }: { detail: SkillDetail }) {
         </div>
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <CardTitle>What to do about it</CardTitle>
           <CardDescription>

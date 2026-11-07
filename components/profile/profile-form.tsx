@@ -138,9 +138,9 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
       )}
 
       {/* Identity */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">About you</CardTitle>
+          <CardTitle className="type-card-title">About you</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -190,9 +190,9 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
       </Card>
 
       {/* Education */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Education</CardTitle>
+          <CardTitle className="type-card-title">Education</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -266,9 +266,9 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
       </Card>
 
       {/* Career target */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">What you&apos;re aiming for</CardTitle>
+          <CardTitle className="type-card-title">What you&apos;re aiming for</CardTitle>
           <CardDescription>
             These drive the questions you get asked and what we recommend.
           </CardDescription>
@@ -360,9 +360,9 @@ export function ProfileForm({ initial }: { initial: ProfileFormValues }) {
       </Card>
 
       {/* Links */}
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
-          <CardTitle className="text-base">Contact and links</CardTitle>
+          <CardTitle className="type-card-title">Contact and links</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">

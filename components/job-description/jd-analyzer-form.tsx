@@ -62,9 +62,9 @@ export function JdAnalyzerForm() {
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
-        <CardTitle className="text-base">Analyse a job posting</CardTitle>
+        <CardTitle className="type-card-title">Analyse a job posting</CardTitle>
         <CardDescription>
           Paste the description and we&apos;ll match it against your profile and
           resume, then build a study plan for the gaps.

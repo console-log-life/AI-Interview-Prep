@@ -43,9 +43,9 @@ export default async function JobDescriptionPage() {
           <JdAnalyzerForm />
 
           <aside>
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader>
-                <CardTitle className="text-base">Previous analyses</CardTitle>
+                <CardTitle className="type-card-title">Previous analyses</CardTitle>
               </CardHeader>
               <CardContent>
                 {history.length === 0 ? (

@@ -49,7 +49,7 @@ export default async function ObservabilityPage() {
         description={`Provider usage and the admin audit trail, last ${WINDOW_DAYS} days.`}
       />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader className="pb-3">
           <CardDescription>
             Only metadata is recorded — provider, model, latency, token counts
@@ -86,7 +86,7 @@ export default async function ObservabilityPage() {
         />
       </div>
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <CardTitle>Usage by feature</CardTitle>
           <CardDescription>
@@ -138,7 +138,7 @@ export default async function ObservabilityPage() {
       </Card>
 
       {usage.recentFailures.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle
@@ -177,7 +177,7 @@ export default async function ObservabilityPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardHeader>
           <CardTitle>Audit trail</CardTitle>
           <CardDescription>

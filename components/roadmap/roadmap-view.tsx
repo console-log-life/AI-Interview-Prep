@@ -93,7 +93,7 @@ export function RoadmapView({ tasks: initial }: { tasks: RoadmapTaskView[] }) {
           return (
             <Card key={day} className={cn(dayDone && "opacity-70")}>
               <CardHeader className="flex-row items-center justify-between space-y-0 py-3">
-                <CardTitle className="text-base">Day {day}</CardTitle>
+                <CardTitle className="type-card-title">Day {day}</CardTitle>
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   {dayMinutes} min

@@ -28,7 +28,7 @@ export function ReadinessCard({
   hasAnyActivity,
 }: ReadinessCardProps) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Interview readiness</CardTitle>
         <CardDescription>

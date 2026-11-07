@@ -60,7 +60,7 @@ export default async function AdminQuestionsPage({
         description={`${total} question${total === 1 ? "" : "s"} in the bank.`}
       />
 
-      <Card>
+      <Card className="rounded-2xl border-border/70">
         <CardContent className="flex flex-wrap gap-2 p-4">
           <Button
             asChild

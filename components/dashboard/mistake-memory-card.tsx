@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<MistakeRow["status"], string> = {
  */
 export function MistakeMemoryCard({ mistakes }: { mistakes: MistakeRow[] }) {
   return (
-    <Card>
+    <Card className="rounded-2xl border-border/70">
       <CardHeader>
         <CardTitle>Mistake memory</CardTitle>
         <CardDescription>
