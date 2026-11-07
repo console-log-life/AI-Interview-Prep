@@ -21,6 +21,7 @@
     "smoke:live": "tsx scripts/live-turn-control-smoke.ts",
     "smoke:ai": "tsx scripts/smoke-real-ai.ts",
     "calibrate": "tsx scripts/calibrate.ts",
+    "e2e:interview": "tsx scripts/e2e-text-interview.ts",
     "harness:speech": "tsx scripts/live-speech-harness.ts"
   },
   "prisma": {

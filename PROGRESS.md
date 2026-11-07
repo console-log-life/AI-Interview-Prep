@@ -488,3 +488,141 @@ Deliberately **not fixed**, on three grounds:
 without reasoning, numbers or a stated trade-off is not depth, then re-run
 `npm run calibrate` in full and confirm the three orderings still hold and the
 EXCELLENT cases stay at 8+.
+
+## ⚠ BLOCKER FOUND — the Gemini free-tier daily quota is exhausted
+
+Discovered at step 7, and it matters more than everything else in this session
+combined.
+
+```
+429 RESOURCE_EXHAUSTED
+Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests
+limit: 20, model: gemini-2.5-flash
+quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier
+Please retry in 12h55m
+```
+
+**The free tier allows 20 `generateContent` requests per day for
+`gemini-2.5-flash`, per project, per model.** This session used 22.
+
+What that means for a demo: a single text interview needs **8 calls** (one
+opening question, two per answer, one report) and a 6-question interview needs
+**14**. Resume analysis, claim extraction and JD analysis are one each. So the
+free tier affords roughly **one and a half interviews per day** — and right now
+it affords none until the quota resets, about 12:30 tomorrow.
+
+Every AI surface fails while exhausted, and it fails *correctly*: the error is
+classified `rate_limit` and surfaces as "The AI service is busy or the daily
+quota is used up. Please try again later." The app degrades honestly rather
+than inventing output. But it degrades.
+
+**Options, in order of preference:**
+1. **Enable billing on the Google AI Studio project.** Paid tier raises the
+   limit far above anything a demo needs; `gemini-2.5-flash` is inexpensive per
+   call. Nothing in the code changes.
+2. **Use a second project/API key** for the demo and keep this one for
+   development. Swap `GEMINI_API_KEY` in `.env`.
+3. **Demo on `AI_PROVIDER=anthropic`** with an `ANTHROPIC_API_KEY`. The
+   provider registry already supports it and `isAiConfigured` checks the right
+   credential per provider — but note the live *voice* interview is
+   Gemini-only (`isLiveVoiceConfigured`), so voice would be unavailable.
+4. **Rehearse against the already-seeded data** and avoid triggering AI calls
+   until the demo itself.
+
+## Step 5 — seed and question bank ✅ FIXED
+
+Audit found **no** placeholders, lorem ipsum, "Sample question 1", duplicates,
+wrong answers or broken formatting anywhere in `prisma/`. What it did find was
+a coverage gap that made the app look half-built:
+
+`seedAssessments` only builds an assessment for a category with **at least
+three option-based questions**, and ten of thirteen categories were one or two
+short — so `/assessments` offered **3** (DSA, DBMS, Aptitude) while the bank
+looked full.
+
+**Nine original option-based questions added** → bank 40 → **49**, published
+assessments 3 → **11**: OOP, Operating Systems, Computer Networks, Java,
+Python, JavaScript and Logical Reasoning each cross the threshold, and System
+Design gets two.
+
+HR and BEHAVIORAL are deliberately left without an assessment: an auto-graded
+multiple-choice "behavioural" question is not an assessment of behaviour, and
+both categories are already served properly by the interview engine, which
+grades free text.
+
+Integrity re-validated across all 49: no duplicate texts, every MCQ and
+TRUE_FALSE has exactly one correct option, every MULTI_SELECT at least two, no
+duplicate options, every question has a substantive explanation and
+`skillsTested`.
+
+**Interviews do not use this bank.** `prisma.question` is read only by
+`lib/assessments/generation.ts` and the admin queries; interview questions are
+generated per-turn by the AI. So "enough questions for a full interview" is a
+statement about assessments, not interviews.
+
+Seed verified idempotent **before** running — questions are keyed on
+`text + isSeed`, so admin-created rows are never touched — then run: 9 created,
+40 updated, and the existing 9 users / 9 interviews / 1 report / 5 evaluations
+all intact afterwards.
+
+## Step 6 — claim grounding on PDF artefacts ✅ FIXED (2 real artefacts)
+
+**No real résumé exists to test against:** `STORAGE_LOCAL_DIR` (`./storage`)
+does not exist and `Resume` has 0 rows. Nothing was copied into the repo
+because there was nothing to copy. So the artefact classes pdf.js actually
+emits were reproduced directly instead.
+
+Verified honestly, by running the new tests against the **old** implementation:
+**2 of 9 genuinely failed**, and they are the two most damaging.
+
+| Artefact | Needed the fix? | Why it broke |
+|---|---|---|
+| **Ligature** (U+FB01 for "fi") | **YES** | "verified" extracted as "veri" + "ed", never matched the model's "verified". NFKC decomposes it. |
+| **Lost spaces** ("ReducedP95latencyby35%") | **YES** | The model reads glued text and writes it back spaced, so no token matched. Fallback compares the source with separators removed, for tokens ≥ 5 chars only — "api" and "sql" occur inside unrelated words once spaces are gone. |
+| Curly apostrophe | no | 0.6 overlap already absorbed it |
+| En dash in a range | no | same |
+| Non-breaking space | no | same |
+| Line-break hyphenation | no | same |
+
+The 7 that already passed are kept as regression guards, not claimed as fixes.
+**The number check is untouched and still strict** — a test pins that an
+invented figure is rejected even inside glued text, because leniency about
+characters must not become leniency about numbers.
+
+## Step 7 — end-to-end against the dev DB ⚠ PARTIAL (quota)
+
+`scripts/e2e-text-interview.ts`, `npm run e2e:interview`. Reached answer 2 of 3
+before the 429 above. **4 API calls** (counted from `AIUsageLog`, not assumed).
+
+Verified before it stopped:
+
+| Stage | Result |
+|---|---|
+| `createInterview` against real DB + AI | ✅ opening question generated and persisted |
+| `submitAnswer` ×2 | ✅ evaluations written |
+| **`InterviewEvaluation.rubricNotes` JSONB round trip** | ✅ **all 6 keys persisted and read back through the real `parseRubricNotes`, giving 6 rubric rows each, all 6 with a reason** |
+| Off-topic detection on *live* questions | ✅ scored 0/10 and 1/10, with justifications naming the mismatch explicitly |
+| `completeInterview` → `InterviewReport.evidence` round trip | ❌ **not reached** |
+
+### Still unverified
+`InterviewReport.evidence` has **not** been round-tripped through Postgres. Its
+two ends are each proven separately — step 3 showed the real model returns
+valid citations with in-range indexes, and 31 unit tests cover
+`parseStoredEvidence` — but the write-then-read through JSONB has not run.
+Re-run `npm run e2e:interview` once quota resets to close it.
+
+### Two things this step corrected in its own tooling
+1. **The script printed `PASS` after crashing.** The `finally` block reported on
+   its `failures` array alone, so an exception part-way through left it empty
+   and the script claimed success on the way out. A false green is worse than
+   no check; it now tracks the thrown error separately and the exit status and
+   the printed verdict cannot disagree.
+2. The canned answers do not match dynamically generated questions, so scores
+   are meaninglessly low. The question asked is now echoed before each answer,
+   and the script says plainly that it verifies plumbing rather than marking.
+
+Cleanup: the interview the script created was deleted (cascade); back to the
+original 9. Cleanup is opt-in (`--cleanup`) by default *off*, because deleting
+an interview while leaving the derived topic-performance and progress rows
+behind would leave the dashboard showing scores with no interview behind them —
+the exact invented data this project refuses to display.
