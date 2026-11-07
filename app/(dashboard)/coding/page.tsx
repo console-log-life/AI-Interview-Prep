@@ -68,13 +68,33 @@ export default async function CodingPage({
     return qs ? `/coding?${qs}` : "/coding";
   };
 
+  const PAGE_SIZE = 30;
+  const page = Math.max(1, Number(params.page) || 1);
+
+  /**
+   * Link to another page of results, carrying the filters with it.
+   *
+   * Separate from `filterHref`, which deliberately drops the page: changing a
+   * filter while on page 4 would otherwise land on an empty page of a much
+   * shorter result set.
+   */
+  const pageHref = (target: number): string => {
+    const query = new URLSearchParams();
+    if (difficulty) query.set("difficulty", difficulty);
+    if (topic) query.set("topic", topic);
+    if (search) query.set("search", search);
+    if (target > 1) query.set("page", String(target));
+    const qs = query.toString();
+    return qs ? `/coding?${qs}` : "/coding";
+  };
+
   const [{ items, total }, solved, recent, topicRows] = await Promise.all([
     listProblems({
       difficulty,
       topic,
       search,
-      page: Number(params.page) || 1,
-      pageSize: 30,
+      page,
+      pageSize: PAGE_SIZE,
     }),
     prisma.codingSubmission.findMany({
       where: { userId: user.id, status: "ACCEPTED", isRunOnly: false },
@@ -95,6 +115,7 @@ export default async function CodingPage({
   const topics = topicRows.map((row) => row.topic);
 
   const solvedIds = new Set(solved.map((row) => row.problemId));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -262,6 +283,55 @@ export default async function CodingPage({
                 </li>
               ))}
             </ul>
+          )}
+
+          {/*
+            Pagination. The query already supported a page; nothing rendered a
+            way to reach one, so with a bank this size most of the problems
+            were simply unreachable.
+          */}
+          {totalPages > 1 && (
+            <nav
+              aria-label="Problem pages"
+              className="flex items-center justify-between gap-3"
+            >
+              <Button
+                asChild={page > 1}
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                className="rounded-full"
+              >
+                {page > 1 ? (
+                  <Link href={pageHref(page - 1)} rel="prev">
+                    Previous
+                  </Link>
+                ) : (
+                  <span>Previous</span>
+                )}
+              </Button>
+
+              <p aria-live="polite" className="text-sm text-muted-foreground">
+                Page <span className="tabular-nums">{page}</span> of{" "}
+                <span className="tabular-nums">{totalPages}</span>
+              </p>
+
+              <Button
+                asChild={page < totalPages}
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                className="rounded-full"
+              >
+                {page < totalPages ? (
+                  <Link href={pageHref(page + 1)} rel="next">
+                    Next
+                  </Link>
+                ) : (
+                  <span>Next</span>
+                )}
+              </Button>
+            </nav>
           )}
         </section>
 
