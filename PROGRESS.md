@@ -256,6 +256,6 @@ Stop rule per item: 3 failed attempts → mark blocked, revert, move on.
 | 1 | Report evidence citations | **done** | New `lib/interviews/report-evidence.ts` resolver + JSONB column + migration `20261019120000_report_evidence`; AI emits `questionIndex` per point, validated against real turns and dropped if untrustworthy; UI falls back to the plain list for older reports. 31 tests. Suite 1223 PASS |
 | 2 | Cross-turn contradiction | **struck** | Not a gap — already implemented and tested. See the audit correction above. No code written. |
 | 3 | Per-dimension rubric justification | **done** | New `lib/interviews/rubric.ts` + JSONB column + migration `20261019130000_rubric_notes`. **Also found during implementation: the six dimension scores were stored but never rendered at all** — `EvaluationRow` carried only the overall score. Report now shows each dimension, its bar, and its reason; unassessed dimensions omitted rather than shown as 0/10. 25 tests. Suite 1248 PASS |
-| 4 | Persona follow-up pressure | todo | |
+| 4 | Persona follow-up pressure | **done** | `PersonaTuning.followUpBudget` (1/2/3/3) + `followUpBudgetFor`; `OrchestratorState.persona` added; orchestrator spends the budget instead of the global constant. PROFESSIONAL unchanged at 2 and pinned by a test. 7 tests. Suite 1255 PASS |
 | 5 | JD seniority normalisation | todo | |
 | 6 | Résumé claim grounding check | todo | |
