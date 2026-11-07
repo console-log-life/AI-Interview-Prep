@@ -30,9 +30,9 @@ external-device detection untouched), never weaken a test.
 | D1 | Report page: 0 turns / partial / missing scores | done | — (audit) | Verified: 0 answers → EmptyState (no invented scores); no report → ReportRetry + transcript link; delivery renders outside that branch so a voice run with 0 graded turns still shows real measurements; all score/text columns non-nullable so "missing scores" degrades to the no-report path; no falsy-zero bugs (only `?? 0`) |
 | D2 | Text-mode interview path still works | done | — (verified) | Text path shares only completeInterview + parseEvidence with the changed code; 97 tests across interview-flow, adaptive, intelligence, evidence-report and delivery-evidence all pass |
 | D3 | Env check: clear message + complete .env.example | done | `lib/env.ts`, `instrumentation.ts`, `tests/unit/env-required.test.ts` | .env.example verified complete (every var the code reads is listed; only NODE_ENV absent, correctly). Added startup assertion for DATABASE_URL + AUTH_SECRET — previously surfaced as a Prisma/Auth.js error mid-page; 11 tests |
-| D4 | README "Run locally" + "Demo flow" | todo | | |
-| D5 | Sweep: console.log noise, TODOs, dead buttons, broken links | todo | | |
-| E1 | Final validation: suite + typecheck + lint + build | todo | | |
+| D4 | README "Run locally" + "Demo flow" | done | `README.md`, `.env.example` | Added Demo flow (10 steps + a 10-minute cut + what needs setup first), pre-demo checks, TOC entry. "Run locally" already existed and is accurate. Added missing SEED_DEMO_USERS |
+| D5 | Sweep: console.log noise, TODOs, dead buttons, broken links | done | — (audit, no changes needed) | Clean: 0 console.log (all 20 console.* are prefixed console.error in real error paths); 0 TODO/FIXME; 0 dead buttons or href="#"; every static, dynamic and nav link resolves to a real route |
+| E1 | Final validation: suite + typecheck + lint + build | done (build blocked) | — | 46 files / **1192 tests PASS** (baseline 1132) · `tsc --noEmit` PASS · `eslint . --max-warnings 0` PASS · **`next build` BLOCKED — host out of memory, 5 attempts** |
 | E2 | Re-read whole-session diff for regressions | todo | | |
 
 ---
@@ -71,3 +71,30 @@ Consequences, with workarounds:
   This is a host workaround only — `vitest.config.ts` is deliberately unchanged
   so CI keeps its parallelism.
 - PowerShell itself intermittently fails to start under this pressure.
+
+#### `next build` — blocked after 5 attempts (final status)
+| # | Strategy | Result |
+|---|---|---|
+| 1 | default heap | `RangeError: Failed to allocate memory` loading `next.config.ts` |
+| 2 | `--max-old-space-size=1024` | `VirtualAlloc failed` |
+| 3 | `--max-semi-space-size=2 --max-old-space-size=900` | reached the compile, ran 60s, died at a 392 MB heap: `AlignedAlloc Allocation failed` |
+| 4 | same, cap 1600, clean `.next` | worker crash, exit `0xC0000005` (access violation under pressure) |
+| 5 | same + `experimental.cpus: 1, workerThreads: false` | worker crash, exit `0xC0000005` |
+
+Attempt 3 proves the toolchain starts and compiles — it died on host memory,
+not on a code error. `next.config.ts` was patched for attempt 5 and **reverted**
+(verified identical to the committed version).
+
+`tsc --noEmit` passing over the whole project is the strongest available
+evidence that the TypeScript is sound; what remains unverified is specifically
+the bundling and prerender stage.
+
+**To verify on a machine with free RAM:** `npm run build`. Nothing in the code
+needs to change for it.
+
+**Host commands that work here** (use these, not the bare npm scripts):
+```bash
+npx vitest run --pool=forks --poolOptions.forks.singleFork=true
+NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx tsc --noEmit
+NODE_OPTIONS="--max-semi-space-size=2 --max-old-space-size=900" npx eslint . --max-warnings 0
+```
