@@ -26,13 +26,20 @@ export function StatCard({
   const improving = hasDelta && delta > 0;
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card
+      className={cn(
+        "overflow-hidden rounded-2xl border-border/70 transition-shadow hover:shadow-md",
+        className,
+      )}
+    >
       <CardContent className="flex items-start justify-between gap-3 p-5">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
+          <p className="eyebrow">{label}</p>
+          {/* Display face: a stat is the one place a number should feel like
+              the headline of its own card. */}
+          <p className="mt-2 font-display text-3xl font-bold tabular-nums tracking-tight">
+            {value}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums">{value}</p>
           {hasDelta && (
             <p
               className={cn(
@@ -54,8 +61,8 @@ export function StatCard({
             <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
           )}
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <Icon className="h-4.5 w-4.5 text-muted-foreground" aria-hidden="true" />
+        <div className="icon-badge">
+          <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
         </div>
       </CardContent>
     </Card>

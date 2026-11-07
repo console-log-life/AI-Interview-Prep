@@ -16,14 +16,16 @@ export function PageHeader({
   eyebrow,
 }: PageHeaderProps) {
   return (
-    <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-title">
+        {/* Bigger and bolder than before: the page title is the one piece of
+            type on a dense page that should be unambiguous about hierarchy. */}
+        <h1 className="text-balance text-2xl font-bold tracking-tight sm:text-title">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-pretty text-sm text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>
         )}
