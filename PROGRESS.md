@@ -398,3 +398,93 @@ cosmetic edits. Noted here instead.
 
 Real-database validation is not skipped as a result — it is what **step 7**
 does, end to end against the dev DB, cleaning up only its own rows.
+
+## Step 3 — real-AI smoke test ✅ 5/5, 5 calls
+
+`scripts/smoke-real-ai.ts`, `npm run smoke:ai`. Against `gemini-2.5-flash`.
+
+This closed the gap that mattered most: every AI schema has a JSON Schema half
+and a zod half, the unit suite only ever exercised the zod half against a fake
+service, and `rubricNotes` and `evidence` had **never been seen coming off a
+real model**.
+
+| # | Call | Result | New fields |
+|---|---|---|---|
+| 1 | `extractResumeClaims` | PASS | 12 claims, all 12 with probes; types experience/achievement/project/skill |
+| 2 | `analyzeJobDescription` | PASS | 7 required skills, 3 responsibilities, matchScore 32, experienceReq parsed |
+| 3 | `evaluateInterviewAnswer` (strong) | PASS | **rubricNotes 6/6 present**, score 8/10 |
+| 4 | `evaluateInterviewAnswer` (weak) | PASS | **rubricNotes 6/6 present**, score 2/10 |
+| 5 | `generateInterviewReport` | PASS | **evidence: 7 citations, every `questionIndex` in range, all 7 resolved and renderable** |
+
+No schema or prompt change was needed — Gemini accepted both new JSON Schemas
+and populated both fields fully. Two *script-level* fixes were required and are
+not product changes: `server-only` throws outside a server component, so its
+module-cache entry is stubbed the way `tests/setup.ts` does it; and the `lib/`
+imports are dynamic because tsx emits CJS here, which has no top-level await.
+
+All sample data is invented in the script — no real person, employer or résumé.
+
+## Step 4 — scoring calibration: 11/12 in range, no prompt change
+
+`tests/fixtures/calibration.ts` (12 cases written for this repo from standard
+CS fundamentals — nothing from any company's process or third-party bank) and
+`scripts/calibrate.ts`, `npm run calibrate`.
+
+| case | quality | expected | actual | verdict |
+|---|---|---|---|---|
+| tech-excellent-index | EXCELLENT | 8-10 | **8** | in range |
+| tech-average-acid | AVERAGE | 4-7 | **6** | in range |
+| tech-wrong-confident | WRONG | 0-3 | **1** | in range |
+| tech-dont-know | DONT_KNOW | 0-2 | **1** | in range |
+| tech-off-topic | OFF_TOPIC | 0-3 | **1** | in range |
+| tech-average-oop | AVERAGE | 5-8 | **8** | in range |
+| behav-excellent-star | EXCELLENT | 8-10 | **8** | in range |
+| behav-average-vague | AVERAGE | 3-6 | **4** | in range |
+| behav-off-topic | OFF_TOPIC | 0-3 | **1** | in range |
+| behav-dont-know | DONT_KNOW | 0-3 | **2** | in range |
+| design-excellent | EXCELLENT | 8-10 | **9** | in range |
+| design-buzzwords | WEAK | 1-4 | **6** | **too high** |
+
+**11/12 in range.** The three failure modes that would actually mislead a
+candidate all pass, as orderings rather than thresholds:
+
+- "I don't know" is not treated as a partial answer — highest 2, needs ≤ 3
+- confidently wrong scores below hedged-but-correct — highest WRONG 1 vs lowest AVERAGE 4
+- off-topic earns nothing for sounding technical — highest 1, needs ≤ 3
+
+### Two corrections to my own harness, not to the evaluator
+
+1. A fourth check originally demanded `EXCELLENT > AVERAGE` strictly and
+   reported FAIL on a **tie at 8**. That was my error: I wrote the ranges to
+   overlap (EXCELLENT 8-10, one AVERAGE case 5-8) because a strong-but-textbook
+   answer genuinely belongs in that region. The check now tests for an
+   *inversion*, which is the real defect, and passes.
+2. The first run lost `design-buzzwords` to a provider **429**, so an id filter
+   was added (`npm run calibrate -- design-buzzwords`) to recover one case for
+   one call instead of twelve. Quota is shared with the demo.
+
+### The one miss, and why the prompt was left alone
+
+`design-buzzwords` — "microservices on Kubernetes with auto-scaling, a load
+balancer, Redis, Kafka and a CDN… would handle any amount of traffic" — scored
+**6** where I expected 1-4. The evaluator gives credit for naming correct,
+relevant technologies even with no reasoning, no numbers, and a claim the answer
+cannot support.
+
+Deliberately **not fixed**, on three grounds:
+
+- It is **leniency, not a defect in kind**. One case in twelve, and every
+  failure mode that misleads a candidate is handled correctly — wrong,
+  off-topic and "I don't know" all floor at 1-2.
+- The brief says make one targeted fix for a *clear systematic* problem and
+  explicitly not to chase individual numbers. One generous score on a verbose,
+  on-topic answer is the second thing, not the first.
+- Risk the night before a demo. The evaluation system prompt grades **every**
+  answer in the demo, and after a 429 there is not enough quota left to verify a
+  change properly while still running step 7, which matters more. Changing
+  scoring for all answers to recover two points on one case is the wrong trade.
+
+**Recommended after the demo:** add one SCORING rule that naming technologies
+without reasoning, numbers or a stated trade-off is not depth, then re-run
+`npm run calibrate` in full and confirm the three orderings still hold and the
+EXCELLENT cases stay at 8+.
