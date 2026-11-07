@@ -626,3 +626,44 @@ original 9. Cleanup is opt-in (`--cleanup`) by default *off*, because deleting
 an interview while leaving the derived topic-performance and progress rows
 behind would leave the dashboard showing scores with no interview behind them —
 the exact invented data this project refuses to display.
+
+## Step 8 — final validation
+
+| Check | Result |
+|---|---|
+| Tests | **50 files / 1324 passed** (session start 1315) |
+| `tsc --noEmit` | PASS |
+| `eslint . --max-warnings 0` | PASS |
+| `next build` | **PASS** — compiled in 81s, 7 static pages, exit 0, BUILD_ID written, no warnings on a clean run |
+| Migrations | `Database schema is up to date!`, no drift |
+
+### Diff review vs `demo-final`
+9 files, **1655 insertions, 4 deletions.** All four deleted lines are inside
+`lib/resume/grounding.ts`, each replaced by an extended version of itself
+(`numbersIn` body, `tokensIn` body, the `found` filter).
+
+**No page, component, route or service was modified.** The only product changes
+are `lib/resume/grounding.ts` (more lenient about characters, so strictly more
+claims kept) and `prisma/seed-data/questions.ts` (9 more questions, so strictly
+more content). Everything else is new scripts, fixtures, tests and this
+document — nothing that the demo path executes.
+
+Safety: `.env` never committed in any commit on any branch; no real names,
+emails or phone numbers in tracked files; working tree clean.
+
+Tagged **`demo-final-2`**.
+
+## Real API calls made this session: 22
+
+| Step | Calls | Note |
+|---|---|---|
+| 3 — smoke | 5 | budget 6 |
+| 4 — calibration | 13 | budget 12; 12 for the run plus 1 to recover the case a 429 took |
+| 7 — end-to-end | 4 | budget 8; stopped early by the daily quota |
+| **Total** | **22** | free tier allows **20/day** — hence the blocker above |
+
+## Not done in this session
+No browser, camera or microphone testing. Everything above is verified by the
+test suite, typecheck, lint, the production build, direct database queries, and
+real provider calls from scripts. The live voice room's audio behaviour is still
+covered only by unit tests with fake socket and audio doubles.
