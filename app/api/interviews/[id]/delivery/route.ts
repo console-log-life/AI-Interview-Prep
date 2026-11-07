@@ -88,11 +88,34 @@ const evidenceSchema = z.object({
   gaps: z.array(z.string().max(200)).max(20),
 });
 
+/**
+ * Attention aggregates.
+ *
+ * Bounded like everything else on this endpoint. Ratios are clamped to 0-1 and
+ * counts to a sane ceiling, so a buggy client cannot write "looked away 4000
+ * times" into a report. Every field is optional and the object defaults to
+ * empty, because the feature is behind a flag and most posts will not carry
+ * it at all.
+ */
+const attentionSchema = z
+  .object({
+    cameraMeasured: z.boolean(),
+    cameraUnavailableReason: z.string().max(600).nullable(),
+    lookingAtScreenRatio: z.coerce.number().min(0).max(1).nullable(),
+    lookAwayCount: z.coerce.number().int().min(0).max(10_000),
+    longestLookAwayMs: z.coerce.number().min(0).max(24 * 60 * 60 * 1000),
+    tabSwitches: z.coerce.number().int().min(0).max(10_000),
+    fullscreenExits: z.coerce.number().int().min(0).max(10_000),
+    maxFacesSeen: z.coerce.number().int().min(0).max(50).nullable(),
+  })
+  .optional();
+
 const bodySchema = z.object({
   visual: visualSchema,
   speech: speechSchema,
   evidence: z.array(evidenceSchema).max(200).default([]),
   interruptions: z.coerce.number().int().min(0).max(500).default(0),
+  attention: attentionSchema,
 });
 
 export const POST = route(
@@ -109,6 +132,7 @@ export const POST = route(
       speech: input.speech,
       evidence: input.evidence as never,
       interruptions: input.interruptions,
+      attention: input.attention ?? null,
     });
 
     return ok({ stored: true });

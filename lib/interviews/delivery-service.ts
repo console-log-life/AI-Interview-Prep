@@ -4,6 +4,10 @@ import { NotFoundError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db/prisma";
 import type { SpeechSummary } from "@/lib/interviews/speech-metrics";
 import type { EvidenceRecord } from "@/lib/ai/live/memory";
+import {
+  parseStoredAttention,
+  type AttentionSummary,
+} from "@/lib/interviews/attention";
 import { ANSWER_INTENTS } from "@/lib/ai/live/understanding";
 import type { VisualSummary } from "@/lib/interviews/visual";
 
@@ -26,6 +30,14 @@ export type DeliveryView = {
   interruptions: number;
   /** Graded exchanges, in order. Empty for a text interview. */
   evidence: EvidenceRecord[];
+  /**
+   * Attention feedback, or null when the feature was off for this interview.
+   *
+   * Null rather than a zeroed summary: "not measured" and "measured as zero"
+   * are different findings, and the report must not show 0% eye contact for an
+   * interview where nothing was watching.
+   */
+  attention: AttentionSummary | null;
 };
 
 export async function saveInterviewDelivery(args: {
@@ -35,6 +47,7 @@ export async function saveInterviewDelivery(args: {
   speech: SpeechSummary;
   interruptions: number;
   evidence: EvidenceRecord[];
+  attention?: AttentionSummary | null;
 }): Promise<void> {
   const interview = await prisma.interview.findFirst({
     where: { id: args.interviewId, userId: args.userId },
@@ -73,6 +86,7 @@ export async function saveInterviewDelivery(args: {
 
     interruptions: args.interruptions,
     evidence: args.evidence,
+    attention: args.attention ?? {},
   };
 
   await prisma.interviewDelivery.upsert({
@@ -101,6 +115,7 @@ export async function getInterviewDelivery(
   return {
     interruptions: row.interruptions,
     evidence: parseEvidence(row.evidence),
+    attention: parseStoredAttention(row.attention),
     visual: {
       capability: row.visualCapability as VisualSummary["capability"],
       samples: row.visualSamples,

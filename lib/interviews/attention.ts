@@ -196,6 +196,59 @@ export function summarizeAttention(input: {
   };
 }
 
+/**
+ * Reads a stored summary back out of the JSONB column.
+ *
+ * Returns **null**, not a zeroed summary, when there is nothing usable. The
+ * column defaults to `{}` for every interview recorded before this feature and
+ * for every interview run with the flag off, and a report that rendered those
+ * as "0% looking at the screen" would be inventing a finding about someone
+ * nothing was watching.
+ *
+ * `cameraMeasured` is the gate: a row claiming measurement must carry the
+ * numbers that go with it, or it is treated as unusable rather than rendered
+ * half-populated.
+ */
+export function parseStoredAttention(value: unknown): AttentionSummary | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  if (typeof r.cameraMeasured !== "boolean") return null;
+
+  const count = (raw: unknown): number =>
+    typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? Math.round(raw) : 0;
+
+  const ratio =
+    typeof r.lookingAtScreenRatio === "number" &&
+    Number.isFinite(r.lookingAtScreenRatio) &&
+    r.lookingAtScreenRatio >= 0 &&
+    r.lookingAtScreenRatio <= 1
+      ? r.lookingAtScreenRatio
+      : null;
+
+  // A row that says it measured the camera but carries no ratio is
+  // self-contradictory; trusting half of it would show counts with no context.
+  if (r.cameraMeasured === true && ratio === null) return null;
+
+  const faces =
+    typeof r.maxFacesSeen === "number" && Number.isFinite(r.maxFacesSeen)
+      ? Math.max(0, Math.round(r.maxFacesSeen))
+      : null;
+
+  return {
+    cameraMeasured: r.cameraMeasured,
+    cameraUnavailableReason:
+      typeof r.cameraUnavailableReason === "string" && r.cameraUnavailableReason.trim()
+        ? r.cameraUnavailableReason
+        : null,
+    lookingAtScreenRatio: ratio,
+    lookAwayCount: count(r.lookAwayCount),
+    longestLookAwayMs: count(r.longestLookAwayMs),
+    tabSwitches: count(r.tabSwitches),
+    fullscreenExits: count(r.fullscreenExits),
+    maxFacesSeen: faces,
+  };
+}
+
 export type AttentionFeedback = {
   /** One line of measured fact, or the honest reason there is none. */
   facts: string[];

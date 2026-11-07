@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   LOOK_AWAY_MIN_MS,
   attentionFeedback,
+  parseStoredAttention,
   summarizeAttention,
   unavailableAttention,
   type AttentionSummary,
@@ -215,6 +216,88 @@ describe("summarizeAttention — ratios and counts", () => {
     const summary = summarize(attentiveStream(), { tabSwitches: 3, fullscreenExits: 2 });
     expect(summary.tabSwitches).toBe(3);
     expect(summary.fullscreenExits).toBe(2);
+  });
+});
+
+describe("parseStoredAttention — reading the JSONB column back", () => {
+  const STORED = {
+    cameraMeasured: true,
+    cameraUnavailableReason: null,
+    lookingAtScreenRatio: 0.78,
+    lookAwayCount: 4,
+    longestLookAwayMs: 6000,
+    tabSwitches: 1,
+    fullscreenExits: 0,
+    maxFacesSeen: 1,
+  };
+
+  it("round-trips a well-formed row", () => {
+    expect(parseStoredAttention(STORED)).toEqual(STORED);
+  });
+
+  it("returns null for the column default, not a zeroed summary", () => {
+    // The distinction the whole reader exists for: every interview recorded
+    // before this feature, and every interview run with the flag off, stores
+    // `{}`. Rendering those as "0% looking at the screen" would invent a
+    // finding about someone nothing was watching.
+    expect(parseStoredAttention({})).toBeNull();
+  });
+
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["an array", [STORED]],
+    ["a string", JSON.stringify(STORED)],
+    ["a number", 1],
+  ])("returns null for %s", (_label, value) => {
+    expect(parseStoredAttention(value)).toBeNull();
+  });
+
+  it("rejects a row that claims measurement but carries no ratio", () => {
+    // Self-contradictory. Trusting half of it would show counts with no
+    // context to read them against.
+    expect(
+      parseStoredAttention({ ...STORED, lookingAtScreenRatio: null }),
+    ).toBeNull();
+  });
+
+  it("keeps an honest unavailable row", () => {
+    const row = parseStoredAttention({
+      ...STORED,
+      cameraMeasured: false,
+      cameraUnavailableReason: "Your camera was off for this interview.",
+      lookingAtScreenRatio: null,
+    });
+    expect(row?.cameraMeasured).toBe(false);
+    expect(row?.cameraUnavailableReason).toMatch(/camera was off/i);
+    expect(row?.lookingAtScreenRatio).toBeNull();
+  });
+
+  it("drops a ratio outside 0-1 rather than rendering it", () => {
+    expect(parseStoredAttention({ ...STORED, lookingAtScreenRatio: 4.2 })).toBeNull();
+    expect(parseStoredAttention({ ...STORED, lookingAtScreenRatio: -1 })).toBeNull();
+  });
+
+  it("coerces a missing or invalid count to zero rather than NaN", () => {
+    const row = parseStoredAttention({
+      ...STORED,
+      lookAwayCount: "four",
+      tabSwitches: undefined,
+      longestLookAwayMs: Number.NaN,
+    });
+    expect(row?.lookAwayCount).toBe(0);
+    expect(row?.tabSwitches).toBe(0);
+    expect(row?.longestLookAwayMs).toBe(0);
+  });
+
+  it("keeps maxFacesSeen null when it was never measured", () => {
+    const row = parseStoredAttention({ ...STORED, maxFacesSeen: null });
+    expect(row?.maxFacesSeen).toBeNull();
+  });
+
+  it("survives a row carrying unexpected extra fields", () => {
+    const row = parseStoredAttention({ ...STORED, somethingNew: "ignored" });
+    expect(row?.lookingAtScreenRatio).toBe(0.78);
   });
 });
 

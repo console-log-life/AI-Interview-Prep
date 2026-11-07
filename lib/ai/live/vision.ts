@@ -91,7 +91,17 @@ export class VisualSampler {
     const Detector = faceDetectorConstructor();
     if (Detector) {
       try {
-        this.detector = new Detector({ fastMode: true, maxDetectedFaces: 1 });
+        /**
+         * Two, not one.
+         *
+         * One was enough while the only question was "is the candidate on
+         * camera". Attention feedback also reports whether more than one face
+         * was visible, and a detector capped at one can never answer that —
+         * it would report a single face in a room full of people. Two is the
+         * cheapest cap that distinguishes "just you" from "not just you",
+         * which is the only distinction the report makes.
+         */
+        this.detector = new Detector({ fastMode: true, maxDetectedFaces: 2 });
         this.detectorAvailable = true;
       } catch {
         this.detector = null;
@@ -186,6 +196,10 @@ export class VisualSampler {
       try {
         const faces = await this.detector.detect(this.canvas);
         sample.face = faces.length > 0 ? toObservation(faces[0]) : null;
+        // A count, and nothing else. No second face is measured, described or
+        // retained — the report only ever says whether it was just the
+        // candidate in frame.
+        sample.faceCount = faces.length;
       } catch {
         // A detection failure on one frame is a missing sample, not an outage.
       } finally {

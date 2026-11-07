@@ -1206,6 +1206,13 @@ model InterviewDelivery {
   /// observations derived from them — deliberately no score.
   evidence      Json     @default("[]")
 
+  /// Attention feedback, as AttentionSummary. `{}` when the feature is off.
+  ///
+  /// Aggregates only — ratios and counts. No frame, image or landmark ever
+  /// reaches the server, which is what makes a camera-on interview defensible
+  /// rather than surveillance.
+  attention     Json     @default("{}")
+
   /// Times the candidate spoke over the interviewer.
   interruptions Int      @default(0)
   createdAt     DateTime @default(now())
